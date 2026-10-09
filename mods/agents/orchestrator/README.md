@@ -5,7 +5,7 @@ An Orchestrator button above the prompt. Pick models, max agents and context lim
 ## Install
 
 ```
-/plugin install orchestrator --marketplace yashwanthkatipally/Yash-mods
+/plugin install orchestrator --marketplace katipally/Yash-mods
 ```
 
 ## Use

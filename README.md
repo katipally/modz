@@ -7,7 +7,7 @@ Mods for [Claude Code](https://claude.com/claude-code): small plugins that add U
 In any Claude Code session:
 
 ```
-/plugin install <mod> --marketplace yashwanthkatipally/Yash-mods
+/plugin install <mod> --marketplace katipally/Yash-mods
 ```
 
 Answer `y` to add the marketplace, then pick a scope (user scope loads it in every session).
