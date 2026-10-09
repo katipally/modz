@@ -1,0 +1,7 @@
+{
+  "name": "MOD_NAME",
+  "version": "0.1.0",
+  "description": "One line on what it does",
+  "author": { "name": "katipally" },
+  "types": "./types/index.d.ts"
+}

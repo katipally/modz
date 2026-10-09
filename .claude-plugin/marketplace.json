@@ -9,8 +9,9 @@
   "plugins": [
     {
       "name": "orchestrator",
-      "source": "./mods/orchestrator",
-      "description": "Orchestrator menu above the prompt: models, max agents and context limit for the main agent only"
+      "source": "./mods/agents/orchestrator",
+      "description": "Orchestrator menu above the prompt: models, max agents and context limit for the main agent only",
+      "category": "agents"
     }
   ]
 }
