@@ -1,7 +1,7 @@
 {
   "name": "buddy",
   "version": "0.1.0",
-  "description": "Claude Code's bot, animated above the prompt: blinks while idle, walks and thinks while working, hops when a turn is done",
+  "description": "Clawd, Claude Code's mascot, animated above the prompt: blinks while idle, walks while working, cheers when a turn is done",
   "author": {
     "name": "katipally"
   },

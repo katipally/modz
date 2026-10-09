@@ -34,7 +34,7 @@
     {
       "name": "buddy",
       "source": "./mods/ui/buddy",
-      "description": "Claude Code's bot, animated above the prompt: blinks, walks while working, hops when done",
+      "description": "Clawd, Claude Code's mascot, animated above the prompt: blinks, walks while working, cheers when done",
       "category": "ui"
     }
   ]

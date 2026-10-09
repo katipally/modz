@@ -3,26 +3,33 @@ import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderEle
 
 import type { Gesture, Mood } from '../types'
 
-// Claude Code's bot as a pixel grid: B body, E eye slot (left empty so the background shows through), . nothing.
-// One column of margin each side leaves room for the head shake, one row on top for the jump.
-const BOT = [
-  '..BBBBBBBBBBB..',
-  '..BBEBBBBBEBB..',
-  '..BBEBBBBBEBB..',
-  'BBBBBBBBBBBBBBB',
-  '..BBBBBBBBBBB..',
-  '..B.B.....B.B..',
-  '..B.B.....B.B..',
+// Clawd exactly as Claude Code draws him (its built-in mods guide's CLAWD_POSES): C body, E eye, . nothing.
+const CLAWD = [
+  '..CCCCCCCCCCCCC..',
+  '..CCCCCCCCCCCCC..',
+  '..CCCECCCCCCCEC..',
+  '..CCCECCCCCCCEC..',
+  'CCCCCCCCCCCCCCCCC',
+  'CCCCCCCCCCCCCCCCC',
+  '..CCCCCCCCCCCCC..',
+  '..CCCCCCCCCCCCC..',
+  '..C.C.......C.C..',
+  '..C.C.......C.C..',
 ]
-const W = BOT[0]!.length + 2
-const H = BOT.length + 1
-const ARM_ROW = 3
-const EYE_COLS = [4, 10]
-const LEG_ROWS = [5, 6]
+// One column of margin each side leaves room for the head shake.
+const W = CLAWD[0]!.length + 2
+const H = CLAWD.length
+const EYE_ROWS = [2, 3]
+const EYE_COLS = [5, 13]
+const ARM_ROWS = [4, 5]
+const ARM_COLS = { left: [0, 1], right: [15, 16] }
+const LEG_ROW = 9
+const LEGS = { outer: [2, 14], inner: [4, 12] }
+const EYE = 0x141414
 
-// Skins are the styles /buddy skin switches between; classic is Claude orange.
+// Skins are the styles /buddy skin switches between; classic is Clawd's own body color.
 const SKINS: Record<string, number> = {
-  classic: 0xd97757,
+  classic: 0xd77757,
   ink: 0xe8e6e3,
   mint: 0x7fd1ae,
   sky: 0x7aa2f7,
@@ -42,74 +49,66 @@ const frame = atom({ plugin: 'buddy', key: 'frame' } as const, 0)
 const gesture = atom({ plugin: 'buddy', key: 'gesture' } as const, 'none')
 const skin = atom({ plugin: 'buddy', key: 'skin' } as const, 'classic')
 
-type Pixels = boolean[][]
+// Each pixel is empty, body or eye.
+type Pixel = 0 | 1 | 2
+type Pixels = Pixel[][]
 
-// One frame of the bot: the base grid, then the mood and gesture move eyes, arms, legs and the whole body.
+// One frame of Clawd: the base pose, then the mood and gesture move eyes, arms, legs and the whole body.
 const draw = (m: Mood, f: number, g: Gesture): Pixels => {
-  const rows = BOT.map(r => [...r].map(c => c === 'B'))
-  const eyesShut = m === 'asleep' || m === 'oops' || g === 'blink'
-  const eyeShift = g === 'look-left' ? -1 : g === 'look-right' || m === 'working' ? 1 : 0
+  const rows: Pixels = CLAWD.map(r => [...r].map(c => (c === 'C' ? 1 : c === 'E' ? 2 : 0)))
+  const isShut = m === 'asleep' || m === 'oops' || g === 'blink'
+  const shift = g === 'look-left' ? -1 : g === 'look-right' || m === 'working' ? 1 : 0
   for (const col of EYE_COLS) {
-    rows[1]![col] = rows[2]![col] = true
-    if (!eyesShut) {
-      // A happy bot squints: only the lower half of each eye stays open.
-      if (m !== 'happy') rows[1]![col + eyeShift] = false
-      rows[2]![col + eyeShift] = false
+    for (const row of EYE_ROWS) rows[row]![col] = 1
+    if (isShut) continue
+    // Happy Clawd squints: only the lower half of each eye shows.
+    for (const row of m === 'happy' ? [EYE_ROWS[1]!] : EYE_ROWS) rows[row]![col + shift] = 2
+  }
+  const raise = (cols: number[]) => {
+    for (const col of cols) {
+      for (const row of ARM_ROWS) rows[row]![col] = 0
+      for (const row of EYE_ROWS) rows[row]![col] = 1
     }
   }
-  const armsUp = (m === 'happy' && f % 2 === 0) || (g === 'wave' && f % 2 === 0)
-  if (armsUp) {
-    const raised = g === 'wave' ? [13, 14] : [0, 1, 13, 14]
-    for (const col of raised) {
-      rows[ARM_ROW]![col] = false
-      rows[ARM_ROW - 1]![col] = true
-    }
-  }
-  if (m === 'working' && f % 2 === 1) {
-    // Walking in place: the outer legs lift while the inner ones stay down.
-    for (const col of [2, 12]) rows[LEG_ROWS[1]!]![col] = false
-  }
-  if (m === 'working' && f % 2 === 0) {
-    for (const col of [4, 10]) rows[LEG_ROWS[1]!]![col] = false
-  }
-  if (m === 'asleep') {
-    // Asleep it sits: legs folded under the body.
-    for (const col of [2, 4, 10, 12]) rows[LEG_ROWS[1]!]![col] = false
-  }
-  const dy = m === 'happy' && f % 2 === 0 ? 0 : 1
+  if (m === 'happy' && f % 2 === 0) raise([...ARM_COLS.left, ...ARM_COLS.right])
+  if (g === 'wave' && f % 2 === 0) raise(ARM_COLS.right)
+  if (m === 'working') for (const col of f % 2 === 0 ? LEGS.inner : LEGS.outer) rows[LEG_ROW]![col] = 0
+  // Crouching for a jump, or sinking asleep: the body drops a row and the legs fold under it.
+  const dy = (m === 'happy' && f % 2 === 1) || m === 'asleep' ? 1 : 0
   const dx = m === 'oops' ? (f % 2 === 0 ? -1 : 1) : 0
-  const canvas: Pixels = Array.from({ length: H }, () => Array<boolean>(W).fill(false))
-  rows.forEach((r, y) => r.forEach((on, x) => {
-    const cx = x + 1 + dx
+  const canvas: Pixels = Array.from({ length: H }, () => Array<Pixel>(W).fill(0))
+  rows.forEach((r, y) => r.forEach((px, x) => {
     const cy = y + dy
-    if (on && cy >= 0 && cy < H && cx >= 0 && cx < W) canvas[cy]![cx] = true
+    if (px && cy < H) canvas[cy]![x + 1 + dx] = px
   }))
   return canvas
 }
 
-// Terminal: two pixels per cell, the top as the glyph's color and the bottom as the cell's.
+// Terminal: two pixels per cell, as Claude Code paints Clawd: the top pixel is the glyph, the bottom the cell.
 const DEFAULT = 0x01000000
-const toCells = (px: Pixels, color: number) => {
+const UPPER = 0x2580
+const LOWER = 0x2584
+const toCells = (px: Pixels, body: number) => {
+  const color = (p: Pixel | undefined) => (p === 1 ? body : p === 2 ? EYE : undefined)
   const words: number[] = []
   for (let y = 0; y < H; y += 2) {
     for (let x = 0; x < W; x++) {
-      const top = px[y]![x]!
-      const bottom = px[y + 1]?.[x] ?? false
-      if (top && bottom) words.push(0x2588, color, DEFAULT)
-      else if (top) words.push(0x2580, color, DEFAULT)
-      else if (bottom) words.push(0x2584, color, DEFAULT)
-      else words.push(0x20, DEFAULT, DEFAULT)
+      const top = color(px[y]![x])
+      const bottom = color(px[y + 1]?.[x])
+      if (top === undefined && bottom === undefined) words.push(0x20, DEFAULT, DEFAULT)
+      else if (top === undefined) words.push(LOWER, bottom!, DEFAULT)
+      else words.push(UPPER, top, bottom ?? DEFAULT)
     }
   }
   return btoa(Array.from(new Uint8Array(Uint32Array.from(words).buffer), b => String.fromCharCode(b)).join(''))
 }
 
 // Everywhere else: one crisp square per pixel.
-const PX = 6
-const toSvg = (px: Pixels, color: number) => {
-  const fill = `#${color.toString(16).padStart(6, '0')}`
-  const rects = px.flatMap((r, y) => r.flatMap((on, x) => (on ? [`<rect x="${x * PX}" y="${y * PX}" width="${PX}" height="${PX}"/>`] : [])))
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W * PX}" height="${H * PX}" shape-rendering="crispEdges" fill="${fill}">${rects.join('')}</svg>`
+const PX = 5
+const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`
+const toSvg = (px: Pixels, body: number) => {
+  const rects = px.flatMap((r, y) => r.flatMap((p, x) => (p ? [`<rect x="${x * PX}" y="${y * PX}" width="${PX}" height="${PX}" fill="${hex(p === 1 ? body : EYE)}"/>`] : [])))
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W * PX}" height="${H * PX}" shape-rendering="crispEdges">${rects.join('')}</svg>`
 }
 
 // Every modz mod places its tile in one shared band: a lead column (the bot), then a column of tiles, then an optional
@@ -212,7 +211,7 @@ export const register: Register = on => {
     const art = e.surface === 'terminal' && 'Raster' in elements
       ? <elements.Raster key="buddy-art" columns={W} rows={H / 2} cells={toCells(px, color)} />
       : 'Svg' in elements
-        ? <elements.Svg source={toSvg(px, color)} alt={`Claude Code bot, ${m}`} />
+        ? <elements.Svg source={toSvg(px, color)} alt={`Clawd, ${m}`} />
         : null
     if (!art) return below
     const aside = m === 'working' ? '·'.repeat((f % 3) + 1) : m === 'happy' ? ['✦', '✧', '⋆'][f % 3]! : m === 'asleep' ? ['z', 'zZ', 'zZz'][f % 3]! : ''
