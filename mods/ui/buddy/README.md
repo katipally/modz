@@ -1,13 +1,13 @@
 # buddy
 
-A small animated bot that sits at the left of the mod band above the prompt.
+Claude Code's own bot, animated, at the left of the mod band above the prompt.
 
 ```
- ▗▄▄▄▖         ▗▄▄▄▖ ··        ▗▄▄▄▖ ✦
- ▐●‿●▌         ▐•_•▌           ▐^‿^▌
-  ▝▘ ▝▘        ▘▝ ▘▝
- idle          working         done
- blinks        walks, thinks   hops
+  ▐▛███▜▌        ▐▛███▜▌ ··      ▗▟█████▙▖ ✦
+ ▝▜█████▛▘      ▝▜█████▛▘        ▐▛███▜▌
+   ▘▘ ▝▝          ▝▘ ▘▝
+ idle           working          done
+ blinks         walks, thinks    arms up, hops
 ```
 
 ## Install

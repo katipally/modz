@@ -15,10 +15,10 @@ const mood = atom({ plugin: 'buddy', key: 'mood' } as const, 'idle')
 const frame = atom({ plugin: 'buddy', key: 'frame' } as const, 0)
 const isBlinking = atom({ plugin: 'buddy', key: 'isBlinking' } as const, false)
 
-// Three rows tall; every frame is padded to the same width so nothing beside it shifts.
-const HEAD = ' ▗▄▄▄▖ '
-const FACE = { idle: ' ▐●‿●▌ ', blink: ' ▐-‿-▌ ', working: ' ▐•_•▌ ', happy: ' ▐^‿^▌ ' }
-const FEET = ['  ▝▘ ▝▘', ' ▘▝ ▘▝ ']
+// Claude Code's own bot, three rows tall; every frame is padded to the same width so nothing beside it shifts.
+const HEAD = { open: ' ▐▛███▜▌ ', shut: ' ▐█████▌ ' }
+const BODY = { rest: '▝▜█████▛▘', up: '▗▟█████▙▖' }
+const FEET = ['  ▘▘ ▝▝  ', '  ▝▘ ▘▝  ']
 const THINK = ['·  ', '·· ', '···', ' ··', '  ·', '   ']
 const SPARKLE = ['✦', '✧', '⋆', '✧']
 
@@ -115,10 +115,10 @@ export const register: Register = on => {
     const { Box, Text } = $.ui.resolve(e)
     const [m, f, blink] = await Promise.all([read($, mood), read($, frame), read($, isBlinking)])
     const isHopUp = m === 'happy' && f % 2 === 0
-    const face = blink && m === 'idle' ? FACE.blink : FACE[m]
+    const head = blink && m === 'idle' ? HEAD.shut : HEAD.open
     const feet = m === 'working' ? FEET[f % 2]! : FEET[0]!
     const aside = m === 'working' ? THINK[f % THINK.length]! : m === 'happy' ? SPARKLE[f % SPARKLE.length]! : ' '.repeat(THINK[0]!.length)
-    const rows = [HEAD, face, isHopUp ? ' '.repeat(feet.length) : feet]
+    const rows = [head, isHopUp ? BODY.up : BODY.rest, isHopUp ? ' '.repeat(feet.length) : feet]
 
     return pack(Box, below, (
       <Box key="buddy" flexDirection="column">

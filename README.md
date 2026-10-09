@@ -20,16 +20,16 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 | [usage-limits](mods/ui/usage-limits) | ui | Context bar plus 5h and 7d limits with time left until reset |
 | [cache-timer](mods/ui/cache-timer) | ui | Cache hit % and time until the cache goes cold |
 | [model-info](mods/ui/model-info) | ui | Model and thinking effort pickers |
-| [buddy](mods/ui/buddy) | ui | A small animated bot: blinks, walks while working, hops when done |
+| [buddy](mods/ui/buddy) | ui | Claude Code's bot, animated: blinks, walks while working, hops when done |
 
 ## How mods share the screen
 
 Mods that draw above the prompt place a tile in one shared band (`modz-band`): a lead column for the bot, then one column of tiles in a fixed order. Each mod's `SLOTS` says where it goes (`lead`, `left`, or `right`), and a column with no tiles is not drawn.
 
 ```
-  ▗▄▄▄▖    ctx   ███░░░░░░░ 26%   5h 4% · 4h 35m   7d 7% · 6d 17h
-  ▐●‿●▌    cache 99% ✦ · 58m
-   ▝▘ ▝▘   Opus 5.5 ▾   medium ▾ ✓
+  ▐▛███▜▌    ctx   ███░░░░░░░ 26%   5h 4% · 4h 35m   7d 7% · 6d 17h
+ ▝▜█████▛▘   cache 99% ✦ · 58m
+   ▘▘ ▝▝     Opus 5.5 ▾   medium ▾ ✓
            Orchestrator on ▾   ⠹ 2 running
 ```
 
