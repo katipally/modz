@@ -21,6 +21,20 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 | [cache-timer](mods/ui/cache-timer) | ui | Cache hit rate and a warm/cold countdown |
 | [model-info](mods/ui/model-info) | ui | Model, thinking effort and output style |
 
+## How mods share the screen
+
+Mods that draw above the prompt add a tile to one shared row (`modz-band`). Tiles sit side by side when they fit and wrap to the next line when they don't, in a fixed order (`ORDER` in each mod), however many are installed.
+
+```
+ wide:   [ctx · 5h · 7d]   [cache · warm]   [model · effort · style]
+         [Orchestrator]
+ narrow: [ctx · 5h · 7d]
+         [cache · warm]   [model · effort]
+         [Orchestrator]
+```
+
+A new mod that draws above the prompt copies the `pack` helper from any of these mods and adds its name to `ORDER`.
+
 ## Layout
 
 ```

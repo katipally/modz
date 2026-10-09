@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, SessionContextUsage, SessionRateLimit } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode, SessionContextUsage, SessionRateLimit } from 'claude-code'
 
 import type { Usage } from '../types'
 
@@ -22,6 +22,24 @@ const span = (ms: number) => {
   const m = Math.max(0, Math.round(ms / 60_000))
   const [d, h] = [Math.floor(m / 1440), Math.floor((m % 1440) / 60)]
   return d ? `${d}d ${h}h` : h ? `${h}h ${m % 60}m` : `${m}m`
+}
+
+// Every modz mod adds its tile to one shared wrapping row, so tiles pack side by side and reflow as the width changes.
+const BAND = 'modz-band'
+const ORDER = ['usage-limits', 'cache-timer', 'model-info', 'orchestrator']
+const rank = (n: RenderNode) => {
+  const i = typeof n !== 'string' && n.type === 'Box' ? ORDER.indexOf(String(n.props?.key)) : -1
+  return i < 0 ? ORDER.length : i
+}
+const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: RenderElement) => {
+  const isBand = below.type === 'Box' && below.props?.key === BAND
+  const isEmpty = below.type === 'Box' && !below.children?.length
+  const tiles = isBand ? (below.children ?? []) : isEmpty ? [] : [below]
+  return (
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
+      {[...tiles, tile].sort((a, b) => rank(a) - rank(b))}
+    </Box>
+  )
 }
 
 export const register: Register = on => {
@@ -66,13 +84,10 @@ export const register: Register = on => {
       )),
     ].filter(p => p !== false)
 
-    return (
-      <Box flexDirection="column">
-        <Box key="usage-limits" flexDirection="row" flexWrap="wrap">
-          {parts.flatMap((p, i) => (i ? [<Text color="claude" bold> · </Text>, p] : [p]))}
-        </Box>
-        {below}
+    return pack(Box, below, (
+      <Box key="usage-limits" flexDirection="row" flexWrap="wrap">
+        {parts.flatMap((p, i) => (i ? [<Text color="claude" bold> · </Text>, p] : [p]))}
       </Box>
-    )
+    ))
   })
 }

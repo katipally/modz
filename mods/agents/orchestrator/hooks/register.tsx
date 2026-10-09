@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, RenderChildren } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, RenderChildren, RenderElement, RenderNode } from 'claude-code'
 
 import type { Config, Field, Model } from '../types'
 
@@ -54,6 +54,24 @@ const parse = (args: string, c: Config): { next: Config; bad: string[] } => {
 
 const withValue = (presets: number[], value: number) =>
   (presets.includes(value) ? presets : [...presets, value].sort((a, b) => a - b))
+
+// Every modz mod adds its tile to one shared wrapping row, so tiles pack side by side and reflow as the width changes.
+const BAND = 'modz-band'
+const ORDER = ['usage-limits', 'cache-timer', 'model-info', 'orchestrator']
+const rank = (n: RenderNode) => {
+  const i = typeof n !== 'string' && n.type === 'Box' ? ORDER.indexOf(String(n.props?.key)) : -1
+  return i < 0 ? ORDER.length : i
+}
+const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: RenderElement) => {
+  const isBand = below.type === 'Box' && below.props?.key === BAND
+  const isEmpty = below.type === 'Box' && !below.children?.length
+  const tiles = isBand ? (below.children ?? []) : isEmpty ? [] : [below]
+  return (
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
+      {[...tiles, tile].sort((a, b) => rank(a) - rank(b))}
+    </Box>
+  )
+}
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -156,8 +174,8 @@ export const register: Register = on => {
         />
       )
 
-    return (
-      <Box flexDirection="column">
+    return pack(Box, below, (
+      <Box key="orchestrator" flexDirection="column">
         <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
           <Button
             key="orch"
@@ -186,8 +204,7 @@ export const register: Register = on => {
         )))}
         {open && c.isOn && row('Max agents', numberPicker('max', c.maxAgents, AGENT_PRESETS, n => `${n} ${n === 1 ? 'agent' : 'agents'}`, n => ({ ...c, maxAgents: n })))}
         {open && c.isOn && row('Context limit', numberPicker('ctx', c.contextK, CONTEXT_PRESETS, k => `${contextLabel(k)} tokens`, n => ({ ...c, contextK: n })))}
-        {below}
       </Box>
-    )
+    ))
   })
 }

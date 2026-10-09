@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode } from 'claude-code'
 
 const info = atom({ plugin: 'model-info', key: 'info' } as const, null)
 const style = atom({ plugin: 'model-info', key: 'style' } as const, null)
@@ -10,6 +10,24 @@ const EFFORT_COLORS: Record<string, string> = { low: 'subtle', medium: 'success'
 const modelName = (id: string) => {
   const m = /claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?![\d])/.exec(id)
   return m ? `${m[1]![0]!.toUpperCase()}${m[1]!.slice(1)} ${m[2]}${m[3] ? `.${m[3]}` : ''}` : id
+}
+
+// Every modz mod adds its tile to one shared wrapping row, so tiles pack side by side and reflow as the width changes.
+const BAND = 'modz-band'
+const ORDER = ['usage-limits', 'cache-timer', 'model-info', 'orchestrator']
+const rank = (n: RenderNode) => {
+  const i = typeof n !== 'string' && n.type === 'Box' ? ORDER.indexOf(String(n.props?.key)) : -1
+  return i < 0 ? ORDER.length : i
+}
+const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: RenderElement) => {
+  const isBand = below.type === 'Box' && below.props?.key === BAND
+  const isEmpty = below.type === 'Box' && !below.children?.length
+  const tiles = isBand ? (below.children ?? []) : isEmpty ? [] : [below]
+  return (
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
+      {[...tiles, tile].sort((a, b) => rank(a) - rank(b))}
+    </Box>
+  )
 }
 
 export const register: Register = on => {
@@ -33,17 +51,14 @@ export const register: Register = on => {
     const { Box, Text } = $.ui.resolve(e)
     const dot = <Text color="claude" bold> · </Text>
 
-    return (
-      <Box flexDirection="column">
-        <Box key="model-info" flexDirection="row" flexWrap="wrap">
-          <Text color="claude">{modelName(i.model)}</Text>
-          {i.effort && dot}
-          {i.effort && <Text color={EFFORT_COLORS[i.effort] ?? 'text'}>{i.effort}</Text>}
-          {dot}
-          <Text bold>{s ?? 'default'}</Text>
-        </Box>
-        {below}
+    return pack(Box, below, (
+      <Box key="model-info" flexDirection="row" flexWrap="wrap">
+        <Text color="claude">{modelName(i.model)}</Text>
+        {i.effort && dot}
+        {i.effort && <Text color={EFFORT_COLORS[i.effort] ?? 'text'}>{i.effort}</Text>}
+        {dot}
+        <Text bold>{s ?? 'default'}</Text>
       </Box>
-    )
+    ))
   })
 }

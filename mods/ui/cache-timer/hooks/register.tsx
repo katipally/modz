@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode } from 'claude-code'
 
 // Claude Code's prompt cache lives 5 minutes or 1 hour depending on the account; the engine does not say which.
 const TTL_CHOICES = [5, 60]
@@ -17,6 +17,24 @@ const span = (ms: number) => {
   const s = Math.max(0, Math.round(ms / 1000))
   const [h, m] = [Math.floor(s / 3600), Math.floor((s % 3600) / 60)]
   return h ? `${h}h ${m}m` : m ? `${m}m ${s % 60}s` : `${s}s`
+}
+
+// Every modz mod adds its tile to one shared wrapping row, so tiles pack side by side and reflow as the width changes.
+const BAND = 'modz-band'
+const ORDER = ['usage-limits', 'cache-timer', 'model-info', 'orchestrator']
+const rank = (n: RenderNode) => {
+  const i = typeof n !== 'string' && n.type === 'Box' ? ORDER.indexOf(String(n.props?.key)) : -1
+  return i < 0 ? ORDER.length : i
+}
+const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: RenderElement) => {
+  const isBand = below.type === 'Box' && below.props?.key === BAND
+  const isEmpty = below.type === 'Box' && !below.children?.length
+  const tiles = isBand ? (below.children ?? []) : isEmpty ? [] : [below]
+  return (
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
+      {[...tiles, tile].sort((a, b) => rank(a) - rank(b))}
+    </Box>
+  )
 }
 
 export const register: Register = on => {
@@ -52,33 +70,30 @@ export const register: Register = on => {
     const left = r.at + ttl * 60_000 - t
     const dot = <Text color="claude" bold> · </Text>
 
-    return (
-      <Box flexDirection="column">
-        <Box key="cache-timer" flexDirection="row" flexWrap="wrap">
-          <Text>
-            <Text dimColor>cache </Text>
-            <Text bold color={hitColor(hit)}>{hit}% hit</Text>
-            <Text dimColor> {count(r.read)} read / {count(r.write + r.fresh)} new</Text>
-          </Text>
-          {dot}
-          {left > 0
-            ? <Text><Text bold color="success">● warm</Text><Text dimColor> {span(left)} left</Text></Text>
-            : <Text><Text bold color="error">○ cold</Text><Text dimColor> for {span(-left)}</Text></Text>}
-          {dot}
-          <Button
-            key="ttl"
-            plain
-            dimColor
-            label={`ttl ${ttl === 60 ? '1h' : `${ttl}m`}`}
-            onPress={async () => {
-              const nextTtl = TTL_CHOICES[(TTL_CHOICES.indexOf(ttl) + 1) % TTL_CHOICES.length]!
-              await update($, ttlMin, () => nextTtl)
-              await $.store.set('ttlMin', nextTtl)
-            }}
-          />
-        </Box>
-        {below}
+    return pack(Box, below, (
+      <Box key="cache-timer" flexDirection="row" flexWrap="wrap">
+        <Text>
+          <Text dimColor>cache </Text>
+          <Text bold color={hitColor(hit)}>{hit}% hit</Text>
+          <Text dimColor> {count(r.read)} read / {count(r.write + r.fresh)} new</Text>
+        </Text>
+        {dot}
+        {left > 0
+          ? <Text><Text bold color="success">● warm</Text><Text dimColor> {span(left)} left</Text></Text>
+          : <Text><Text bold color="error">○ cold</Text><Text dimColor> for {span(-left)}</Text></Text>}
+        {dot}
+        <Button
+          key="ttl"
+          plain
+          dimColor
+          label={`ttl ${ttl === 60 ? '1h' : `${ttl}m`}`}
+          onPress={async () => {
+            const nextTtl = TTL_CHOICES[(TTL_CHOICES.indexOf(ttl) + 1) % TTL_CHOICES.length]!
+            await update($, ttlMin, () => nextTtl)
+            await $.store.set('ttlMin', nextTtl)
+          }}
+        />
       </Box>
-    )
+    ))
   })
 }
