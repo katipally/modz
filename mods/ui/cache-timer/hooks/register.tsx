@@ -10,7 +10,6 @@ const last = atom({ plugin: 'cache-timer', key: 'last' } as const, null)
 const now = atom({ plugin: 'cache-timer', key: 'now' } as const, 0)
 const ttlMin = atom({ plugin: 'cache-timer', key: 'ttlMin' } as const, 60)
 
-const count = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))
 
 // "1h 5m" past an hour, "58m" past two minutes, then "1m 40s" and "40s" for the last stretch.
 const span = (ms: number) => {
@@ -91,14 +90,12 @@ export const register: Register = on => {
     const isWarm = left > 0
 
     return pack(Box, below, (
-      <Box key="cache-timer" flexDirection="row" flexWrap="wrap" columnGap={3}>
+      <Box key="cache-timer" flexDirection="row">
         <Text>
           <Text color={TINT}>{'cache'.padEnd(5)} </Text>
-          <Text bold color={hit >= 90 ? 'success' : hit >= 70 ? 'warning' : 'error'}>{hit}% hit</Text>
-          <Text dimColor> · {count(r.read)} read · {count(r.write + r.fresh)} new</Text>
-        </Text>
-        <Text bold color={isWarm ? 'success' : 'error'}>
-          {isWarm ? `● ${span(left)} left` : `○ ${span(-left)} ago`}
+          <Text bold color={hit >= 90 ? TINT : hit >= 70 ? 'warning' : 'error'}>{hit}%</Text>
+          <Text dimColor> · </Text>
+          <Text color={isWarm ? 'success' : 'error'}>{isWarm ? span(left) : `${span(-left)} ago`}</Text>
         </Text>
       </Box>
     ))

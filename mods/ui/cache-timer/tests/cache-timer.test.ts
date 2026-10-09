@@ -15,11 +15,9 @@ test('shows hit rate, a warm countdown, and sets the ttl by command', async ($, 
     const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
     const ui = await $.ui.mount({ plugin: 'cache-timer', surface, component: 'AbovePrompt', props })
     const row = (await ui.find({ key: 'cache-timer' }))?.text ?? ''
-    expect(row).toContain('99% hit')
-    expect(row).toContain('406k read · 4k new')
-    expect(row).toMatch(/● (59m|1h 0m) left/)
+    expect(row).toMatch(/^cache +99% · (59m|1h 0m)$/)
     await $.command.run({ command: 'cache-ttl', args: '5m', origin: { kind: 'composer' }, presentation: {} as never })
-    expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/● [45]m/)
+    expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/· [45]m$/)
     await $.command.run({ command: 'cache-ttl', args: '1h', origin: { kind: 'composer' }, presentation: {} as never })
     await ui.unmount()
   }

@@ -18,7 +18,7 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 | --- | --- | --- |
 | [orchestrator](mods/agents/orchestrator) | agents | Orchestrator menu: models, max agents, context limit for the main agent only |
 | [usage-limits](mods/ui/usage-limits) | ui | Context bar plus 5h and 7d limits with time left until reset |
-| [cache-timer](mods/ui/cache-timer) | ui | Cache hit rate and a warm/cold countdown |
+| [cache-timer](mods/ui/cache-timer) | ui | Cache hit % and time until the cache goes cold |
 | [model-info](mods/ui/model-info) | ui | Model, thinking effort and output style |
 
 ## How mods share the screen
@@ -27,7 +27,7 @@ Mods that draw above the prompt place a tile in one shared band (`modz-band`) wi
 
 ```
  wide:    ctx   ▰▰▱▱▱▱▱▱ 26%   5h 4% · 4h 35m left   7d 7% · 6d 17h left      Opus 5.5 · medium · default
-          cache 99% hit · 260k read · 468 new   ● 58m left                         ● Orchestrator on ▾
+          cache 99% · 58m                                                        ● Orchestrator on ▾
 
  narrow:  the right column drops under the left one
  partial: a column with no tiles is not drawn; a lone column is left-aligned
