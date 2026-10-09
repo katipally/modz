@@ -28,7 +28,7 @@
     {
       "name": "model-info",
       "source": "./mods/ui/model-info",
-      "description": "Model and thinking effort of the main agent",
+      "description": "Model picker and thinking effort slider for the main agent",
       "category": "ui"
     }
   ]

@@ -1,7 +1,9 @@
 {
   "name": "model-info",
   "version": "0.1.0",
-  "description": "The model and thinking effort of the last main-agent request, above the prompt",
-  "author": { "name": "katipally" },
+  "description": "Model picker and a thinking effort slider for the main agent, above the prompt",
+  "author": {
+    "name": "katipally"
+  },
   "types": "./types/index.d.ts"
 }

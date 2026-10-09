@@ -1,8 +1,12 @@
 import { atom, read, update } from 'claude-code'
 import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode } from 'claude-code'
 
+import type { Info } from '../types'
+
 const info = atom({ plugin: 'model-info', key: 'info' } as const, null)
 const TINT = 'merged'
+const MODELS = ['opus', 'sonnet', 'haiku']
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
 
 // "claude-opus-5-5" reads "Opus 5.5"; an id in another shape is shown as given.
 const modelName = (id: string) => {
@@ -39,6 +43,12 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
 
 
 export const register: Register = on => {
+  on('session.start', async ($, e, next) => {
+    const model = await $.session.model()
+    await update($, info, i => ({ ...i, model }))
+    return next(e)
+  })
+
   on('turn.step', async function* ($, e, next) {
     if (e.agentId === undefined) {
       await update($, info, () => ({ model: e.model, effort: e.effort === undefined ? undefined : String(e.effort) }))
@@ -51,14 +61,44 @@ export const register: Register = on => {
     if (e.props.hasSurvey) return below
     const i = await read($, info)
     if (!i) return below
-    const { Box, Text } = $.ui.resolve(e)
-    const sep = <Text dimColor> · </Text>
+    const elements = $.ui.resolve(e)
+    const { Box, Button, Text } = elements
+
+    // Both run Claude Code's own /model and /effort, so the change is the session's, not a display.
+    const run = async (command: string, args: string) => {
+      const { text } = await $.command.run({ command, args })
+      if (text) $.ui.toast(text)
+    }
+    const setModel = async (m: string) => {
+      await run('model', m)
+      const model = await $.session.model()
+      await update($, info, cur => ({ ...cur, model }))
+    }
+    const setEffort = async (effort: string) => {
+      await run('effort', effort)
+      await update($, info, cur => ({ model: cur?.model ?? i.model, effort }))
+    }
+    const family = MODELS.find(m => i.model.includes(m)) ?? i.model
+    const picker = 'Select' in elements ? (
+      <elements.Select
+        key="model"
+        value={family}
+        options={[...new Set([family, ...MODELS])].map(m => ({ value: m, label: m === family ? modelName(i.model) : m[0]!.toUpperCase() + m.slice(1) }))}
+        onSelect={setModel}
+      />
+    ) : <Text bold color={TINT}>{modelName(i.model)}</Text>
+    const at = i.effort === undefined ? -1 : EFFORTS.indexOf(i.effort)
 
     return pack(Box, below, (
-      <Box key="model-info" flexDirection="row" flexWrap="wrap">
-        <Text bold color={TINT}>{modelName(i.model)}</Text>
-        {i.effort && sep}
-        {i.effort && <Text>{i.effort}</Text>}
+      <Box key="model-info" flexDirection="row" flexWrap="wrap" columnGap={2}>
+        {picker}
+        <Box flexDirection="row" columnGap={1}>
+          <Text dimColor>effort</Text>
+          {EFFORTS.map((level, n) => (
+            <Button key={`effort-${level}`} plain label="■" dimColor={n > at} onPress={() => setEffort(level)} />
+          ))}
+          <Text color={TINT}>{i.effort ?? 'auto'}</Text>
+        </Box>
       </Box>
     ))
   })

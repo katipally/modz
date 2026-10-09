@@ -10,6 +10,7 @@ test('draws the context bar and both limits with time left', async ($, on) => {
     rateLimits: [
       { kind: 'five_hour', percentUsed: 42, resetsAt },
       { kind: 'seven_day', percentUsed: 6 },
+      { kind: 'spend_limit', percentUsed: 90 },
     ],
     changed: ['context', 'rateLimits'],
   })
@@ -20,6 +21,8 @@ test('draws the context bar and both limits with time left', async ($, on) => {
     expect(row).toContain('41%')
     expect(row).toMatch(/5h 42% · 2[67]m(?! left)/)
     expect(row).toContain('7d 6%')
+    expect((await ui.find({ type: 'Text', text: /^42%$/ }))?.props.color).toBe('success')
+    expect((await ui.find({ type: 'Text', text: /^90%$/ }))?.props.color).toBe('error')
     await ui.unmount()
   }
 })

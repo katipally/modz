@@ -12,4 +12,4 @@ ctx   ████░░░░░░ 41%   5h 42% · 27m   7d 6% · 6d 18h
 /plugin install usage-limits --marketplace katipally/modz
 ```
 
-The context bar is orange, turning yellow at 50% and red at 80%. The 5h and 7d limits stay uncolored; the time after each is how long until it resets. Rate limits show on subscription accounts only.
+Percentages turn yellow at 60% and red at 85%: the context bar is orange below that, the 5h and 7d values green. Labels and reset times stay uncolored; the time after each limit is how long until it resets. Rate limits show on subscription accounts only.

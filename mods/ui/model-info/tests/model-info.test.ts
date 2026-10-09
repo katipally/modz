@@ -1,19 +1,39 @@
 import { expect, test } from 'claude-code/testing'
 import type { RenderElement } from 'claude-code'
 
-test('shows model and effort of the main agent only', async ($, on) => {
+const PROPS = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
+
+test('picks the model and slides effort through /model and /effort, main agent only', async ($, on) => {
+  const ran: string[] = []
+  let model = 'claude-opus-5-5'
   on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('session.model', () => ({ value: model }))
+  on('command.run', (_, e) => {
+    ran.push(`/${e.command} ${e.args}`)
+    if (e.command === 'model') model = `claude-${e.args}-4-6`
+    return { text: '' }
+  })
   on('turn.step', async function* () {
     return { turnId: 't', index: 0, answer: '', toolUses: [], stopReason: 'end_turn' as const, usage: null }
   })
   for await (const _ of $.turn.step({ turnId: 't', index: 0, model: 'claude-opus-5-5', effort: 'medium', messageCount: 1 } as never)) void _
   for await (const _ of $.turn.step({ turnId: 't', index: 0, model: 'claude-haiku-4-5', effort: 'low', messageCount: 1, agentId: 'sub' } as never)) void _
+
   for (const surface of ['terminal', 'desktop'] as const) {
-    const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
-    const ui = await $.ui.mount({ plugin: 'model-info', surface, component: 'AbovePrompt', props })
-    expect((await ui.find({ key: 'model-info' }))?.text).toBe('Opus 5.5 · medium')
+    const ui = await $.ui.mount({ plugin: 'model-info', surface, component: 'AbovePrompt', props: PROPS })
+    expect((await ui.find({ key: 'model-info' }))?.text).toMatch(/effort.*(medium|high)/)
     expect(await ui.find({ key: 'modz-left' })).toBeUndefined()
-    expect(await ui.find({ key: 'modz-right' })).toBeDefined()
+    await ui.press({ key: 'effort-high' })
+    expect((await ui.find({ key: 'model-info' }))?.text).toContain('high')
+    expect((await ui.find({ key: 'effort-max' }))?.props.dimColor).toBe(true)
+    expect((await ui.find({ key: 'effort-low' }))?.props.dimColor).toBe(false)
     await ui.unmount()
   }
+  const ui = await $.ui.mount({ plugin: 'model-info', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'model' }))?.props.value).toBe('opus')
+  await ui.select({ key: 'model', value: 'sonnet' })
+  expect((await ui.find({ key: 'model' }))?.props.value).toBe('sonnet')
+  expect(ran).toContain('/effort high')
+  expect(ran).toContain('/model sonnet')
+  await ui.unmount()
 })

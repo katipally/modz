@@ -49,9 +49,9 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
   )
 }
 
-// Each tile has its own Claude theme color; the context bar turns yellow and red as the window fills.
+// Each tile has its own Claude theme color; values turn yellow at 60% and red at 85% as they fill.
 const TINT = 'claude'
-const tone = (pct: number) => (pct >= 80 ? 'error' : pct >= 50 ? 'warning' : TINT)
+const tone = (pct: number, calm: string) => (pct >= 85 ? 'error' : pct >= 60 ? 'warning' : calm)
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -81,7 +81,7 @@ export const register: Register = on => {
     const metric = (label: string, value: number, detail?: string) => (
       <Text>
         <Text dimColor>{label} </Text>
-        <Text bold>{Math.round(value)}%</Text>
+        <Text bold color={tone(value, 'success')}>{Math.round(value)}%</Text>
         {detail && <Text dimColor> · {detail}</Text>}
       </Text>
     )
@@ -91,9 +91,9 @@ export const register: Register = on => {
         {pct !== undefined && (
           <Text>
             <Text color={TINT}>{'ctx'.padEnd(5)} </Text>
-            <Text color={tone(pct)}>{'█'.repeat(filled)}</Text>
+            <Text color={tone(pct, TINT)}>{'█'.repeat(filled)}</Text>
             <Text dimColor>{'░'.repeat(width - filled)} </Text>
-            <Text bold color={tone(pct)}>{Math.round(pct)}%</Text>
+            <Text bold color={tone(pct, TINT)}>{Math.round(pct)}%</Text>
           </Text>
         )}
         {u.limits.map(l => metric(LABELS[l.kind] ?? l.kind, l.percentUsed, l.resetsAt && span(Date.parse(l.resetsAt) - t)))}
