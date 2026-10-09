@@ -12,6 +12,24 @@
       "source": "./mods/agents/orchestrator",
       "description": "Orchestrator menu above the prompt: models, max agents and context limit for the main agent only",
       "category": "agents"
+    },
+    {
+      "name": "usage-limits",
+      "source": "./mods/ui/usage-limits",
+      "description": "Context bar plus 5h and 7d rate limits with time left until each resets",
+      "category": "ui"
+    },
+    {
+      "name": "cache-timer",
+      "source": "./mods/ui/cache-timer",
+      "description": "Prompt cache hit rate, and a warm/cold countdown until the cache expires",
+      "category": "ui"
+    },
+    {
+      "name": "model-info",
+      "source": "./mods/ui/model-info",
+      "description": "Model, thinking effort and output style of the main agent",
+      "category": "ui"
     }
   ]
 }

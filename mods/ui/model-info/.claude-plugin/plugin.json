@@ -1,0 +1,7 @@
+{
+  "name": "model-info",
+  "version": "0.1.0",
+  "description": "The model, thinking effort and output style of the last main-agent request, above the prompt",
+  "author": { "name": "katipally" },
+  "types": "./types/index.d.ts"
+}

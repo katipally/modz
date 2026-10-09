@@ -111,10 +111,11 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey) return next(e)
+    const below = await next(e)
+    if (e.props.hasSurvey) return below
     const c = await read($, config)
     const elements = $.ui.resolve(e)
-    if (!('Select' in elements)) return next(e)
+    if (!('Select' in elements)) return below
     const { Box, Button, Input, Select, Text } = elements
     const edit = await read($, editing)
     const open = await read($, isOpen)
@@ -185,6 +186,7 @@ export const register: Register = on => {
         )))}
         {open && c.isOn && row('Max agents', numberPicker('max', c.maxAgents, AGENT_PRESETS, n => `${n} ${n === 1 ? 'agent' : 'agents'}`, n => ({ ...c, maxAgents: n })))}
         {open && c.isOn && row('Context limit', numberPicker('ctx', c.contextK, CONTEXT_PRESETS, k => `${contextLabel(k)} tokens`, n => ({ ...c, contextK: n })))}
+        {below}
       </Box>
     )
   })

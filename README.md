@@ -17,6 +17,9 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 | Mod | Category | What it does |
 | --- | --- | --- |
 | [orchestrator](mods/agents/orchestrator) | agents | Orchestrator menu: models, max agents, context limit for the main agent only |
+| [usage-limits](mods/ui/usage-limits) | ui | Context bar plus 5h and 7d limits with time left until reset |
+| [cache-timer](mods/ui/cache-timer) | ui | Cache hit rate and a warm/cold countdown |
+| [model-info](mods/ui/model-info) | ui | Model, thinking effort and output style |
 
 ## Layout
 

@@ -1,0 +1,7 @@
+{
+  "name": "usage-limits",
+  "version": "0.1.0",
+  "description": "Context bar plus 5h and 7d rate limits with time left until each resets, above the prompt",
+  "author": { "name": "katipally" },
+  "types": "./types/index.d.ts"
+}

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'claude-code/testing'
+import type { RenderElement } from 'claude-code'
 import type { AgentSpawnInput } from 'claude-code'
 
 const spawn = (over: Partial<AgentSpawnInput> = {}): AgentSpawnInput => ({
@@ -42,7 +43,8 @@ describe('orchestrator', () => {
     expect((await $.agent.spawn(spawn({ model: 'opus', parentAgentId: 'x' }))).agentId).toBe('b')
   })
 
-  test('one button opens the menu; custom values are typed in', async $ => {
+  test('one button opens the menu; custom values are typed in', async ($, on) => {
+    on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
     for (const surface of ['terminal', 'desktop'] as const) {
       await $.command.run({ command: 'orch', args: 'on models=sonnet,haiku max=2 ctx=200', origin: { kind: 'composer' }, presentation: {} as never })
       const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 80, scroll: {} as never, view: {} as never }
