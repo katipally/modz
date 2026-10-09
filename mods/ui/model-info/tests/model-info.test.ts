@@ -35,7 +35,7 @@ test('lists models and efforts from Claude Code and switches them through /model
     expect((effort?.props.options as { value: string }[]).map(o => o.value)).toEqual(['low', 'medium', 'high', 'max', 'auto'])
     const picker = await ui.find({ key: 'model' })
     expect((picker?.props.options as { value: string }[]).map(o => o.value)).toEqual(['default', 'opus', 'sonnet', 'haiku'])
-    expect(await ui.find({ key: 'modz-left' })).toBeUndefined()
+    expect(await ui.find({ key: 'modz-right' })).toBeUndefined()
     await ui.unmount()
   }
 

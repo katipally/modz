@@ -30,6 +30,12 @@
       "source": "./mods/ui/model-info",
       "description": "Model and thinking effort pickers for the main agent",
       "category": "ui"
+    },
+    {
+      "name": "buddy",
+      "source": "./mods/ui/buddy",
+      "description": "A small animated bot above the prompt: blinks, walks while working, hops when done",
+      "category": "ui"
     }
   ]
 }

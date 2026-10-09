@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, RenderChildren, RenderElement, RenderNode } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderChildren, RenderElement, RenderNode, Timer } from 'claude-code'
 
 import type { Config, Field, Model } from '../types'
 
@@ -14,6 +14,22 @@ const USER_ORIGINS = new Set(['composer', 'bridge', 'sdk'])
 const CONFIG_REF = { plugin: 'orchestrator', key: 'config' } as const
 const config = atom(CONFIG_REF, FALLBACK)
 const spawned = atom({ plugin: 'orchestrator', key: 'spawned' } as const, 0)
+const running = atom({ plugin: 'orchestrator', key: 'running' } as const, [])
+const spin = atom({ plugin: 'orchestrator', key: 'spin' } as const, 0)
+
+// The spinner turns only while a subagent this session spawned is still running.
+const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+const SPIN_MS = 100
+let spinner: Timer | undefined
+const track = async ($: EngineInterface, agentId: string, isRunning: boolean) => {
+  await update($, running, ids => (isRunning ? [...ids, agentId] : ids.filter(id => id !== agentId)))
+  const count = (await read($, running)).length
+  if (count > 0 && !spinner) spinner = $.clock.every(SPIN_MS, () => void update($, spin, n => n + 1))
+  if (count === 0) {
+    spinner?.cancel()
+    spinner = undefined
+  }
+}
 const editing = atom({ plugin: 'orchestrator', key: 'editing' } as const, null)
 const isOpen = atom({ plugin: 'orchestrator', key: 'isOpen' } as const, false)
 
@@ -56,10 +72,16 @@ const parse = (args: string, c: Config): { next: Config; bad: string[] } => {
 const withValue = (presets: number[], value: number) =>
   (presets.includes(value) ? presets : [...presets, value].sort((a, b) => a - b))
 
-// Every modz mod places its tile in one shared band: live metrics stack in a left column, identity and controls in a
-// right one. A column with no tiles is not drawn, and the right column drops under the left when the width runs out.
+// Every modz mod places its tile in one shared band: a lead column (the bot), then a column of tiles, then an optional
+// right column. A column with no tiles is not drawn, and columns wrap under each other when the width runs out.
 const BAND = 'modz-band'
-const SLOTS: Record<string, 'left' | 'right'> = { 'usage-limits': 'left', 'cache-timer': 'left', 'model-info': 'right', orchestrator: 'right' }
+const SLOTS: Record<string, 'lead' | 'left' | 'right'> = {
+  buddy: 'lead',
+  'usage-limits': 'left',
+  'cache-timer': 'left',
+  'model-info': 'left',
+  orchestrator: 'left',
+}
 const ORDER = Object.keys(SLOTS)
 const keyOf = (n: RenderNode) => (typeof n !== 'string' && n.type === 'Box' ? String(n.props?.key ?? '') : '')
 const rank = (n: RenderNode) => {
@@ -72,13 +94,12 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
     ? (below.type === 'Box' ? below.children ?? [] : []).flatMap(col => (typeof col !== 'string' && col.type === 'Box' ? col.children ?? [] : [col]))
     : isEmpty ? [] : [below]
   const all = [...tiles, tile].sort((a, b) => rank(a) - rank(b))
-  const left = all.filter(n => SLOTS[keyOf(n)] !== 'right')
-  const right = all.filter(n => SLOTS[keyOf(n)] === 'right')
-  const isSplit = left.length > 0 && right.length > 0
+  const [lead, left, right] = (['lead', 'left', 'right'] as const).map(slot => all.filter(n => (SLOTS[keyOf(n)] ?? 'left') === slot))
   return (
-    <Box key={BAND} flexDirection="row" flexWrap="wrap" justifyContent="space-between" columnGap={4}>
-      {left.length > 0 && <Box key="modz-left" flexDirection="column">{left}</Box>}
-      {right.length > 0 && <Box key="modz-right" flexDirection="column" alignItems={isSplit ? 'flex-end' : 'flex-start'}>{right}</Box>}
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
+      {lead!.length > 0 && <Box key="modz-lead" flexDirection="column" justifyContent="center">{lead}</Box>}
+      {left!.length > 0 && <Box key="modz-left" flexDirection="column" flexGrow={right!.length > 0 ? 1 : 0}>{left}</Box>}
+      {right!.length > 0 && <Box key="modz-right" flexDirection="column" alignItems="flex-end">{right}</Box>}
     </Box>
   )
 }
@@ -136,8 +157,14 @@ export const register: Register = on => {
     }
     const ran = await next(e)
     if (ran.deny === undefined) await update($, spawned, n => n + 1)
+    if (ran.agentId) await track($, ran.agentId, true)
     return ran
   }).catch(($, e, next) => next(e))
+
+  on('turn.complete', async ($, e, next) => {
+    if (e.agentId && (await read($, running)).includes(e.agentId)) await track($, e.agentId, false)
+    return next(e)
+  })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
@@ -148,6 +175,7 @@ export const register: Register = on => {
     const { Box, Button, Input, Select, Text } = elements
     const edit = await read($, editing)
     const open = await read($, isOpen)
+    const [busy, turn] = await Promise.all([read($, running), read($, spin)])
     const set = (fn: (c: Config) => Config) => update($, config, fn)
     const toggle = (m: Model) =>
       set(c => {
@@ -199,6 +227,7 @@ export const register: Register = on => {
             ]}
             onSelect={v => (v === SETTINGS ? update($, isOpen, o => !o) : set(c => ({ ...c, isOn: v === 'on' })))}
           />
+          {busy.length > 0 && <Text color="planMode">{SPINNER[turn % SPINNER.length]} {busy.length} running</Text>}
           {open && (
             <Button key="save" plain dimColor label="Save as default" onPress={async () => {
               await $.store.set('defaults', c)

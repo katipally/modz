@@ -1,0 +1,9 @@
+{
+  "name": "buddy",
+  "version": "0.1.0",
+  "description": "A small animated bot above the prompt: blinks while idle, walks and thinks while working, hops when a turn is done",
+  "author": {
+    "name": "katipally"
+  },
+  "types": "./types/index.d.ts"
+}

@@ -5,6 +5,13 @@ import type { Choices, Info } from '../types'
 
 const info = atom({ plugin: 'model-info', key: 'info' } as const, null)
 const choices = atom({ plugin: 'model-info', key: 'choices' } as const, { models: [], efforts: [] })
+const isConfirmed = atom({ plugin: 'model-info', key: 'isConfirmed' } as const, false)
+const CONFIRM_MS = 1500
+
+const confirm = async ($: EngineInterface) => {
+  await update($, isConfirmed, () => true)
+  $.clock.after(CONFIRM_MS, () => void update($, isConfirmed, () => false))
+}
 const TINT = 'merged'
 
 // /effort's hint reads like "[low|medium|high|max|auto|ultracode [on|off]]": its bare words are the levels.
@@ -17,10 +24,16 @@ const modelName = (id: string) => {
   return m ? `${m[1]![0]!.toUpperCase()}${m[1]!.slice(1)} ${m[2]}${m[3] ? `.${m[3]}` : ''}` : id
 }
 
-// Every modz mod places its tile in one shared band: live metrics stack in a left column, identity and controls in a
-// right one. A column with no tiles is not drawn, and the right column drops under the left when the width runs out.
+// Every modz mod places its tile in one shared band: a lead column (the bot), then a column of tiles, then an optional
+// right column. A column with no tiles is not drawn, and columns wrap under each other when the width runs out.
 const BAND = 'modz-band'
-const SLOTS: Record<string, 'left' | 'right'> = { 'usage-limits': 'left', 'cache-timer': 'left', 'model-info': 'right', orchestrator: 'right' }
+const SLOTS: Record<string, 'lead' | 'left' | 'right'> = {
+  buddy: 'lead',
+  'usage-limits': 'left',
+  'cache-timer': 'left',
+  'model-info': 'left',
+  orchestrator: 'left',
+}
 const ORDER = Object.keys(SLOTS)
 const keyOf = (n: RenderNode) => (typeof n !== 'string' && n.type === 'Box' ? String(n.props?.key ?? '') : '')
 const rank = (n: RenderNode) => {
@@ -33,13 +46,12 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
     ? (below.type === 'Box' ? below.children ?? [] : []).flatMap(col => (typeof col !== 'string' && col.type === 'Box' ? col.children ?? [] : [col]))
     : isEmpty ? [] : [below]
   const all = [...tiles, tile].sort((a, b) => rank(a) - rank(b))
-  const left = all.filter(n => SLOTS[keyOf(n)] !== 'right')
-  const right = all.filter(n => SLOTS[keyOf(n)] === 'right')
-  const isSplit = left.length > 0 && right.length > 0
+  const [lead, left, right] = (['lead', 'left', 'right'] as const).map(slot => all.filter(n => (SLOTS[keyOf(n)] ?? 'left') === slot))
   return (
-    <Box key={BAND} flexDirection="row" flexWrap="wrap" justifyContent="space-between" columnGap={4}>
-      {left.length > 0 && <Box key="modz-left" flexDirection="column">{left}</Box>}
-      {right.length > 0 && <Box key="modz-right" flexDirection="column" alignItems={isSplit ? 'flex-end' : 'flex-start'}>{right}</Box>}
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
+      {lead!.length > 0 && <Box key="modz-lead" flexDirection="column" justifyContent="center">{lead}</Box>}
+      {left!.length > 0 && <Box key="modz-left" flexDirection="column" flexGrow={right!.length > 0 ? 1 : 0}>{left}</Box>}
+      {right!.length > 0 && <Box key="modz-right" flexDirection="column" alignItems="flex-end">{right}</Box>}
     </Box>
   )
 }
@@ -78,7 +90,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     if (e.props.hasSurvey) return below
-    const [i, c] = await Promise.all([read($, info), read($, choices)])
+    const [i, c, ok] = await Promise.all([read($, info), read($, choices), read($, isConfirmed)])
     if (!i) return below
     const elements = $.ui.resolve(e)
     const { Box, Text } = elements
@@ -93,10 +105,12 @@ export const register: Register = on => {
       const model = await $.session.model()
       await update($, info, cur => ({ ...cur, model }))
       await $.command.list()
+      await confirm($)
     }
     const setEffort = async (effort: string) => {
       await run('effort', effort)
       await update($, info, cur => ({ model: cur?.model ?? i.model, effort }))
+      await confirm($)
     }
 
     const plain = (
@@ -124,6 +138,7 @@ export const register: Register = on => {
         {efforts.length > 0
           ? <Select key="effort" value={i.effort} options={efforts.map(level => ({ value: level }))} onSelect={setEffort} />
           : i.effort && <Text dimColor>{i.effort}</Text>}
+        {ok && <Text color="success">✓</Text>}
       </Box>
     ))
   })

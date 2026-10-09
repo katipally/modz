@@ -71,4 +71,23 @@ describe('orchestrator', () => {
       await ui.unmount()
     }
   })
+
+  test('spins while its subagents run', async ($, on) => {
+    on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+    on('agent.spawn', () => ({ model: 'sonnet', agentId: 'a1' }))
+    on('prompt.submit', (_, e) => ({ text: e.text }))
+    on('turn.complete', (_, e) => ({ text: e.answer, turnId: e.turnId }))
+    await $.command.run({ command: 'orch', args: 'on max=3 models=sonnet', origin: { kind: 'composer' }, presentation: {} as never })
+    await $.prompt.submit({ text: 'go', wait: false, origin: { kind: 'composer' } })
+    await $.agent.spawn(spawn())
+    const props = { hasSurvey: false, isWorking: true, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
+    let ui = await $.ui.mount({ plugin: 'orchestrator', surface: 'terminal', component: 'AbovePrompt', props })
+    expect((await ui.find({ key: 'orchestrator' }))?.text).toMatch(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] 1 running/)
+    await ui.unmount()
+    await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't', agentId: 'a1', reason: 'answer' } as never)
+    ui = await $.ui.mount({ plugin: 'orchestrator', surface: 'terminal', component: 'AbovePrompt', props })
+    expect((await ui.find({ key: 'orchestrator' }))?.text).not.toContain('running')
+    await ui.unmount()
+  })
 })
+

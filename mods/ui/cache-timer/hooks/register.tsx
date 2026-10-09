@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, Timer } from 'claude-code'
 
 // Claude Code's prompt cache lives 5 minutes or 1 hour depending on the account; the engine does not say which.
 const TTL_CHOICES: Record<string, number> = { '5m': 5, '1h': 60 }
@@ -8,6 +8,21 @@ const TICK_MS = 5000
 
 const last = atom({ plugin: 'cache-timer', key: 'last' } as const, null)
 const now = atom({ plugin: 'cache-timer', key: 'now' } as const, 0)
+const twinkle = atom({ plugin: 'cache-timer', key: 'twinkle' } as const, 0)
+
+// A request that reads the cache twinkles for a moment, counting frames down to nothing.
+const SPARKLE = ['✦', '✧', '⋆', '✧']
+const TWINKLE_MS = 180
+const TWINKLE_FRAMES = 8
+let twinkler: Timer | undefined
+const sparkle = async ($: EngineInterface) => {
+  twinkler?.cancel()
+  await update($, twinkle, () => TWINKLE_FRAMES)
+  twinkler = $.clock.every(TWINKLE_MS, async () => {
+    await update($, twinkle, n => Math.max(0, n - 1))
+    if ((await read($, twinkle)) === 0) twinkler?.cancel()
+  })
+}
 const ttlMin = atom({ plugin: 'cache-timer', key: 'ttlMin' } as const, 60)
 
 
@@ -18,10 +33,16 @@ const span = (ms: number) => {
   return h ? `${h}h ${m}m` : m >= 2 ? `${m}m` : m ? `${m}m ${s % 60}s` : `${s}s`
 }
 
-// Every modz mod places its tile in one shared band: live metrics stack in a left column, identity and controls in a
-// right one. A column with no tiles is not drawn, and the right column drops under the left when the width runs out.
+// Every modz mod places its tile in one shared band: a lead column (the bot), then a column of tiles, then an optional
+// right column. A column with no tiles is not drawn, and columns wrap under each other when the width runs out.
 const BAND = 'modz-band'
-const SLOTS: Record<string, 'left' | 'right'> = { 'usage-limits': 'left', 'cache-timer': 'left', 'model-info': 'right', orchestrator: 'right' }
+const SLOTS: Record<string, 'lead' | 'left' | 'right'> = {
+  buddy: 'lead',
+  'usage-limits': 'left',
+  'cache-timer': 'left',
+  'model-info': 'left',
+  orchestrator: 'left',
+}
 const ORDER = Object.keys(SLOTS)
 const keyOf = (n: RenderNode) => (typeof n !== 'string' && n.type === 'Box' ? String(n.props?.key ?? '') : '')
 const rank = (n: RenderNode) => {
@@ -34,13 +55,12 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
     ? (below.type === 'Box' ? below.children ?? [] : []).flatMap(col => (typeof col !== 'string' && col.type === 'Box' ? col.children ?? [] : [col]))
     : isEmpty ? [] : [below]
   const all = [...tiles, tile].sort((a, b) => rank(a) - rank(b))
-  const left = all.filter(n => SLOTS[keyOf(n)] !== 'right')
-  const right = all.filter(n => SLOTS[keyOf(n)] === 'right')
-  const isSplit = left.length > 0 && right.length > 0
+  const [lead, left, right] = (['lead', 'left', 'right'] as const).map(slot => all.filter(n => (SLOTS[keyOf(n)] ?? 'left') === slot))
   return (
-    <Box key={BAND} flexDirection="row" flexWrap="wrap" justifyContent="space-between" columnGap={4}>
-      {left.length > 0 && <Box key="modz-left" flexDirection="column">{left}</Box>}
-      {right.length > 0 && <Box key="modz-right" flexDirection="column" alignItems={isSplit ? 'flex-end' : 'flex-start'}>{right}</Box>}
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
+      {lead!.length > 0 && <Box key="modz-lead" flexDirection="column" justifyContent="center">{lead}</Box>}
+      {left!.length > 0 && <Box key="modz-left" flexDirection="column" flexGrow={right!.length > 0 ? 1 : 0}>{left}</Box>}
+      {right!.length > 0 && <Box key="modz-right" flexDirection="column" alignItems="flex-end">{right}</Box>}
     </Box>
   )
 }
@@ -72,6 +92,7 @@ export const register: Register = on => {
       const at = Date.now()
       await update($, last, () => ({ at, read: u.cache_read_input_tokens, write: u.cache_creation_input_tokens, fresh: u.input_tokens }))
       await update($, now, () => at)
+      if (u.cache_read_input_tokens > 0) await sparkle($)
     }
     return result
   })
@@ -79,7 +100,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     if (e.props.hasSurvey) return below
-    const [r, , ttl] = await Promise.all([read($, last), read($, now), read($, ttlMin)])
+    const [r, , ttl, tw] = await Promise.all([read($, last), read($, now), read($, ttlMin), read($, twinkle)])
     const t = Date.now()
     if (!r) return below
     const { Box, Text } = $.ui.resolve(e)
@@ -94,6 +115,7 @@ export const register: Register = on => {
         <Text>
           <Text color={TINT}>{'cache'.padEnd(5)} </Text>
           <Text bold color={hit >= 90 ? TINT : hit >= 70 ? 'warning' : 'error'}>{hit}%</Text>
+          {tw > 0 && <Text color={TINT}> {SPARKLE[tw % SPARKLE.length]}</Text>}
           <Text dimColor> · </Text>
           <Text color={isWarm ? 'success' : 'error'}>{isWarm ? span(left) : `${span(-left)} ago`}</Text>
         </Text>

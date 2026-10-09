@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode, SessionContextUsage, SessionRateLimit } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, SessionContextUsage, SessionRateLimit, Timer } from 'claude-code'
 
 import type { Usage } from '../types'
 
@@ -9,6 +9,21 @@ const LABELS: Record<string, string> = { five_hour: '5h', seven_day: '7d', spend
 
 const usage = atom({ plugin: 'usage-limits', key: 'usage' } as const, { limits: [] })
 const now = atom({ plugin: 'usage-limits', key: 'now' } as const, 0)
+const shownPct = atom({ plugin: 'usage-limits', key: 'shownPct' } as const, 0)
+
+// The bar eases toward a new value over a few frames instead of jumping.
+const GROW_MS = 40
+let grower: Timer | undefined
+const grow = async ($: EngineInterface, target: number) => {
+  grower?.cancel()
+  grower = $.clock.every(GROW_MS, async () => {
+    const shown = await read($, shownPct)
+    const step = Math.sign(target - shown) * Math.max(0.5, Math.abs(target - shown) / 5)
+    const nextPct = Math.abs(target - shown) <= 0.5 ? target : shown + step
+    await update($, shownPct, () => nextPct)
+    if (nextPct === target) grower?.cancel()
+  })
+}
 
 const toUsage = (context: SessionContextUsage, limits: SessionRateLimit[]): Usage => ({
   contextPercent: context.percent,
@@ -22,10 +37,16 @@ const span = (ms: number) => {
   return d ? `${d}d ${h}h` : h ? `${h}h ${m % 60}m` : `${m}m`
 }
 
-// Every modz mod places its tile in one shared band: live metrics stack in a left column, identity and controls in a
-// right one. A column with no tiles is not drawn, and the right column drops under the left when the width runs out.
+// Every modz mod places its tile in one shared band: a lead column (the bot), then a column of tiles, then an optional
+// right column. A column with no tiles is not drawn, and columns wrap under each other when the width runs out.
 const BAND = 'modz-band'
-const SLOTS: Record<string, 'left' | 'right'> = { 'usage-limits': 'left', 'cache-timer': 'left', 'model-info': 'right', orchestrator: 'right' }
+const SLOTS: Record<string, 'lead' | 'left' | 'right'> = {
+  buddy: 'lead',
+  'usage-limits': 'left',
+  'cache-timer': 'left',
+  'model-info': 'left',
+  orchestrator: 'left',
+}
 const ORDER = Object.keys(SLOTS)
 const keyOf = (n: RenderNode) => (typeof n !== 'string' && n.type === 'Box' ? String(n.props?.key ?? '') : '')
 const rank = (n: RenderNode) => {
@@ -38,13 +59,12 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
     ? (below.type === 'Box' ? below.children ?? [] : []).flatMap(col => (typeof col !== 'string' && col.type === 'Box' ? col.children ?? [] : [col]))
     : isEmpty ? [] : [below]
   const all = [...tiles, tile].sort((a, b) => rank(a) - rank(b))
-  const left = all.filter(n => SLOTS[keyOf(n)] !== 'right')
-  const right = all.filter(n => SLOTS[keyOf(n)] === 'right')
-  const isSplit = left.length > 0 && right.length > 0
+  const [lead, left, right] = (['lead', 'left', 'right'] as const).map(slot => all.filter(n => (SLOTS[keyOf(n)] ?? 'left') === slot))
   return (
-    <Box key={BAND} flexDirection="row" flexWrap="wrap" justifyContent="space-between" columnGap={4}>
-      {left.length > 0 && <Box key="modz-left" flexDirection="column">{left}</Box>}
-      {right.length > 0 && <Box key="modz-right" flexDirection="column" alignItems={isSplit ? 'flex-end' : 'flex-start'}>{right}</Box>}
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
+      {lead!.length > 0 && <Box key="modz-lead" flexDirection="column" justifyContent="center">{lead}</Box>}
+      {left!.length > 0 && <Box key="modz-left" flexDirection="column" flexGrow={right!.length > 0 ? 1 : 0}>{left}</Box>}
+      {right!.length > 0 && <Box key="modz-right" flexDirection="column" alignItems="flex-end">{right}</Box>}
     </Box>
   )
 }
@@ -57,6 +77,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const u = await $.session.usage()
     await update($, usage, () => toUsage(u.context, u.rateLimits))
+    if (u.context.percent !== undefined) await grow($, u.context.percent)
     await update($, now, () => Date.now())
     $.clock.every(TICK_MS, () => void update($, now, () => Date.now()))
     return next(e)
@@ -64,6 +85,7 @@ export const register: Register = on => {
 
   on('session.measure', async ($, e, next) => {
     await update($, usage, () => toUsage(e.context, e.rateLimits))
+    if (e.context.percent !== undefined) await grow($, e.context.percent)
     return next(e)
   })
 
@@ -71,13 +93,13 @@ export const register: Register = on => {
     const below = await next(e)
     if (e.props.hasSurvey) return below
     const { Box, Text } = $.ui.resolve(e)
-    const [u] = await Promise.all([read($, usage), read($, now)])
+    const [u, , shown] = await Promise.all([read($, usage), read($, now), read($, shownPct)])
     const t = Date.now()
     const pct = u.contextPercent
     if (pct === undefined && u.limits.length === 0) return below
 
     const width = Math.max(5, Math.min(10, Math.floor(e.props.bodyColumns / 12)))
-    const filled = pct === undefined ? 0 : Math.min(width, Math.max(0, Math.round((pct / 100) * width)))
+    const filled = pct === undefined ? 0 : Math.min(width, Math.max(0, Math.round((shown / 100) * width)))
     const metric = (label: string, value: number, detail?: string) => (
       <Text>
         <Text dimColor>{label} </Text>

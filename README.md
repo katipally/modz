@@ -20,20 +20,22 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 | [usage-limits](mods/ui/usage-limits) | ui | Context bar plus 5h and 7d limits with time left until reset |
 | [cache-timer](mods/ui/cache-timer) | ui | Cache hit % and time until the cache goes cold |
 | [model-info](mods/ui/model-info) | ui | Model and thinking effort pickers |
+| [buddy](mods/ui/buddy) | ui | A small animated bot: blinks, walks while working, hops when done |
 
 ## How mods share the screen
 
-Mods that draw above the prompt place a tile in one shared band (`modz-band`) with two columns: live metrics on the left, identity and controls on the right. Each mod's `SLOTS` says which column it takes and in what order.
+Mods that draw above the prompt place a tile in one shared band (`modz-band`): a lead column for the bot, then one column of tiles in a fixed order. Each mod's `SLOTS` says where it goes (`lead`, `left`, or `right`), and a column with no tiles is not drawn.
 
 ```
- wide:    ctx   ███░░░░░░░ 26%   5h 4% · 4h 35m   7d 7% · 6d 17h      Opus 5.5 ▾   medium ▾
-          cache 99% · 58m                                                        Orchestrator on ▾
-
- narrow:  the right column drops under the left one
- partial: a column with no tiles is not drawn; a lone column is left-aligned
+  ▗▄▄▄▖    ctx   ███░░░░░░░ 26%   5h 4% · 4h 35m   7d 7% · 6d 17h
+  ▐●‿●▌    cache 99% ✦ · 58m
+   ▝▘ ▝▘   Opus 5.5 ▾   medium ▾ ✓
+           Orchestrator on ▾   ⠹ 2 running
 ```
 
 Each tile has its own Claude theme color (usage `claude`, cache `suggestion`, model `merged`, orchestrator `planMode`). Labels and details are dim, values bold. Usage values turn yellow at 60% and red at 85%; the cache time is red once cold.
+
+Small animations play only while something happens: the bot walks during a turn and hops when it ends, the context bar grows to its new value, the cache twinkles after a hit, a check pops in after a model or effort switch, and the orchestrator spins while its subagents run.
 
 A new mod that draws above the prompt copies the `pack` helper from any of these mods and adds itself to `SLOTS` in all of them.
 
