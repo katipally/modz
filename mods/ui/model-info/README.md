@@ -1,9 +1,9 @@
 # model-info
 
-The model, thinking effort and output style of the main agent's last request.
+The model and thinking effort of the main agent's last request.
 
 ```
-Opus 5.5 · medium · default
+Opus 5.5 · medium
 ```
 
 ## Install

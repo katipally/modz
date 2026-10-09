@@ -28,7 +28,7 @@
     {
       "name": "model-info",
       "source": "./mods/ui/model-info",
-      "description": "Model, thinking effort and output style of the main agent",
+      "description": "Model and thinking effort of the main agent",
       "category": "ui"
     }
   ]

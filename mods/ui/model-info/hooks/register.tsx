@@ -2,7 +2,6 @@ import { atom, read, update } from 'claude-code'
 import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode } from 'claude-code'
 
 const info = atom({ plugin: 'model-info', key: 'info' } as const, null)
-const style = atom({ plugin: 'model-info', key: 'style' } as const, null)
 const TINT = 'merged'
 
 // "claude-opus-5-5" reads "Opus 5.5"; an id in another shape is shown as given.
@@ -40,11 +39,6 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
 
 
 export const register: Register = on => {
-  on('prompt.compose', async ($, e, next) => {
-    await update($, style, () => e.outputStyle?.name ?? null)
-    return next(e)
-  })
-
   on('turn.step', async function* ($, e, next) {
     if (e.agentId === undefined) {
       await update($, info, () => ({ model: e.model, effort: e.effort === undefined ? undefined : String(e.effort) }))
@@ -55,7 +49,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     if (e.props.hasSurvey) return below
-    const [i, s] = await Promise.all([read($, info), read($, style)])
+    const i = await read($, info)
     if (!i) return below
     const { Box, Text } = $.ui.resolve(e)
     const sep = <Text dimColor> · </Text>
@@ -65,8 +59,6 @@ export const register: Register = on => {
         <Text bold color={TINT}>{modelName(i.model)}</Text>
         {i.effort && sep}
         {i.effort && <Text>{i.effort}</Text>}
-        {sep}
-        <Text>{s ?? 'default'}</Text>
       </Box>
     ))
   })

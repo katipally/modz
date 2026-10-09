@@ -49,7 +49,7 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
   )
 }
 
-// Each tile has its own Claude theme color; yellow and red still take over once a limit starts to bite.
+// Each tile has its own Claude theme color; the context bar turns yellow and red as the window fills.
 const TINT = 'claude'
 const tone = (pct: number) => (pct >= 80 ? 'error' : pct >= 50 ? 'warning' : TINT)
 
@@ -80,8 +80,8 @@ export const register: Register = on => {
     const filled = pct === undefined ? 0 : Math.min(width, Math.max(0, Math.round((pct / 100) * width)))
     const metric = (label: string, value: number, detail?: string) => (
       <Text>
-        <Text color={TINT}>{label} </Text>
-        <Text bold color={tone(value)}>{Math.round(value)}%</Text>
+        <Text dimColor>{label} </Text>
+        <Text bold>{Math.round(value)}%</Text>
         {detail && <Text dimColor> · {detail}</Text>}
       </Text>
     )
@@ -91,12 +91,12 @@ export const register: Register = on => {
         {pct !== undefined && (
           <Text>
             <Text color={TINT}>{'ctx'.padEnd(5)} </Text>
-            <Text color={tone(pct)}>{'▰'.repeat(filled)}</Text>
-            <Text dimColor>{'▱'.repeat(width - filled)} </Text>
+            <Text color={tone(pct)}>{'█'.repeat(filled)}</Text>
+            <Text dimColor>{'░'.repeat(width - filled)} </Text>
             <Text bold color={tone(pct)}>{Math.round(pct)}%</Text>
           </Text>
         )}
-        {u.limits.map(l => metric(LABELS[l.kind] ?? l.kind, l.percentUsed, l.resetsAt && `${span(Date.parse(l.resetsAt) - t)} left`))}
+        {u.limits.map(l => metric(LABELS[l.kind] ?? l.kind, l.percentUsed, l.resetsAt && span(Date.parse(l.resetsAt) - t)))}
       </Box>
     ))
   })
