@@ -14,6 +14,8 @@ test('shows model, effort and output style of the main agent only', async ($, on
     const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
     const ui = await $.ui.mount({ plugin: 'model-info', surface, component: 'AbovePrompt', props })
     expect((await ui.find({ key: 'model-info' }))?.text).toContain('Opus 5.5 · medium · Explanatory')
+    expect(await ui.find({ key: 'modz-left' })).toBeUndefined()
+    expect(await ui.find({ key: 'modz-right' })).toBeDefined()
     await ui.unmount()
   }
 })

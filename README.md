@@ -23,17 +23,19 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 
 ## How mods share the screen
 
-Mods that draw above the prompt add a tile to one shared row (`modz-band`). Tiles sit side by side when they fit and wrap to the next line when they don't, in a fixed order (`ORDER` in each mod), however many are installed.
+Mods that draw above the prompt place a tile in one shared band (`modz-band`) with two columns: live metrics on the left, identity and controls on the right. Each mod's `SLOTS` says which column it takes and in what order.
 
 ```
- wide:   [ctx · 5h · 7d]   [cache · warm]   [model · effort · style]
-         [Orchestrator]
- narrow: [ctx · 5h · 7d]
-         [cache · warm]   [model · effort]
-         [Orchestrator]
+ wide:    ctx   ▰▰▱▱▱▱▱▱ 26%   5h 4% · 4h 35m left   7d 7% · 6d 17h left      Opus 5.5 · medium · default
+          cache 99% hit · 260k read · 468 new   ● warm · 58m left   ttl 1h          ● Orchestrator on ▾
+
+ narrow:  the right column drops under the left one
+ partial: a column with no tiles is not drawn; a lone column is left-aligned
 ```
 
-A new mod that draws above the prompt copies the `pack` helper from any of these mods and adds its name to `ORDER`.
+One look for every tile: dim labels and details, bold values, and color only for status (green under 50%, yellow 50-79%, red 80%+).
+
+A new mod that draws above the prompt copies the `pack` helper from any of these mods and adds itself to `SLOTS` in all of them.
 
 ## Layout
 

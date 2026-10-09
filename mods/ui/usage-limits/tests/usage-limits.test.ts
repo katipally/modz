@@ -18,7 +18,7 @@ test('draws the context bar and both limits with time left', async ($, on) => {
     const ui = await $.ui.mount({ plugin: 'usage-limits', surface, component: 'AbovePrompt', props })
     const row = (await ui.find({ key: 'usage-limits' }))?.text ?? ''
     expect(row).toContain('41%')
-    expect(row).toMatch(/5h 42% \(2[67]m left\)/)
+    expect(row).toMatch(/5h 42% · 2[67]m left/)
     expect(row).toContain('7d 6%')
     await ui.unmount()
   }

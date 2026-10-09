@@ -9,33 +9,42 @@ const last = atom({ plugin: 'cache-timer', key: 'last' } as const, null)
 const now = atom({ plugin: 'cache-timer', key: 'now' } as const, 0)
 const ttlMin = atom({ plugin: 'cache-timer', key: 'ttlMin' } as const, 60)
 
-const hitColor = (pct: number) => (pct >= 90 ? 'success' : pct >= 70 ? 'warning' : 'error')
 const count = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))
 
-// "1h 5m" past an hour, "4m 30s" past a minute, else "40s".
+// "1h 5m" past an hour, "58m" past two minutes, then "1m 40s" and "40s" for the last stretch.
 const span = (ms: number) => {
   const s = Math.max(0, Math.round(ms / 1000))
   const [h, m] = [Math.floor(s / 3600), Math.floor((s % 3600) / 60)]
-  return h ? `${h}h ${m}m` : m ? `${m}m ${s % 60}s` : `${s}s`
+  return h ? `${h}h ${m}m` : m >= 2 ? `${m}m` : m ? `${m}m ${s % 60}s` : `${s}s`
 }
 
-// Every modz mod adds its tile to one shared wrapping row, so tiles pack side by side and reflow as the width changes.
+// Every modz mod places its tile in one shared band: live metrics stack in a left column, identity and controls in a
+// right one. A column with no tiles is not drawn, and the right column drops under the left when the width runs out.
 const BAND = 'modz-band'
-const ORDER = ['usage-limits', 'cache-timer', 'model-info', 'orchestrator']
+const SLOTS: Record<string, 'left' | 'right'> = { 'usage-limits': 'left', 'cache-timer': 'left', 'model-info': 'right', orchestrator: 'right' }
+const ORDER = Object.keys(SLOTS)
+const keyOf = (n: RenderNode) => (typeof n !== 'string' && n.type === 'Box' ? String(n.props?.key ?? '') : '')
 const rank = (n: RenderNode) => {
-  const i = typeof n !== 'string' && n.type === 'Box' ? ORDER.indexOf(String(n.props?.key)) : -1
+  const i = ORDER.indexOf(keyOf(n))
   return i < 0 ? ORDER.length : i
 }
 const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: RenderElement) => {
-  const isBand = below.type === 'Box' && below.props?.key === BAND
   const isEmpty = below.type === 'Box' && !below.children?.length
-  const tiles = isBand ? (below.children ?? []) : isEmpty ? [] : [below]
+  const tiles = keyOf(below) === BAND
+    ? (below.type === 'Box' ? below.children ?? [] : []).flatMap(col => (typeof col !== 'string' && col.type === 'Box' ? col.children ?? [] : [col]))
+    : isEmpty ? [] : [below]
+  const all = [...tiles, tile].sort((a, b) => rank(a) - rank(b))
+  const left = all.filter(n => SLOTS[keyOf(n)] !== 'right')
+  const right = all.filter(n => SLOTS[keyOf(n)] === 'right')
+  const isSplit = left.length > 0 && right.length > 0
   return (
-    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
-      {[...tiles, tile].sort((a, b) => rank(a) - rank(b))}
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" justifyContent="space-between" columnGap={4}>
+      {left.length > 0 && <Box key="modz-left" flexDirection="column">{left}</Box>}
+      {right.length > 0 && <Box key="modz-right" flexDirection="column" alignItems={isSplit ? 'flex-end' : 'flex-start'}>{right}</Box>}
     </Box>
   )
 }
+
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -68,20 +77,20 @@ export const register: Register = on => {
     const total = r.read + r.write + r.fresh
     const hit = total ? Math.floor((r.read * 100) / total) : 0
     const left = r.at + ttl * 60_000 - t
-    const dot = <Text color="claude" bold> · </Text>
+    const isWarm = left > 0
 
     return pack(Box, below, (
-      <Box key="cache-timer" flexDirection="row" flexWrap="wrap">
+      <Box key="cache-timer" flexDirection="row" flexWrap="wrap" columnGap={3}>
         <Text>
-          <Text dimColor>cache </Text>
-          <Text bold color={hitColor(hit)}>{hit}% hit</Text>
-          <Text dimColor> {count(r.read)} read / {count(r.write + r.fresh)} new</Text>
+          <Text dimColor>{'cache'.padEnd(5)} </Text>
+          <Text bold color={hit >= 90 ? 'success' : hit >= 70 ? 'warning' : 'error'}>{hit}% hit</Text>
+          <Text dimColor> · {count(r.read)} read · {count(r.write + r.fresh)} new</Text>
         </Text>
-        {dot}
-        {left > 0
-          ? <Text><Text bold color="success">● warm</Text><Text dimColor> {span(left)} left</Text></Text>
-          : <Text><Text bold color="error">○ cold</Text><Text dimColor> for {span(-left)}</Text></Text>}
-        {dot}
+        <Text>
+          <Text color={isWarm ? 'success' : 'error'}>{isWarm ? '●' : '○'} </Text>
+          <Text bold>{isWarm ? 'warm' : 'cold'}</Text>
+          <Text dimColor> · {isWarm ? `${span(left)} left` : `${span(-left)} ago`}</Text>
+        </Text>
         <Button
           key="ttl"
           plain

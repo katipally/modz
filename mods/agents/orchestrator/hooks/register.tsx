@@ -55,23 +55,33 @@ const parse = (args: string, c: Config): { next: Config; bad: string[] } => {
 const withValue = (presets: number[], value: number) =>
   (presets.includes(value) ? presets : [...presets, value].sort((a, b) => a - b))
 
-// Every modz mod adds its tile to one shared wrapping row, so tiles pack side by side and reflow as the width changes.
+// Every modz mod places its tile in one shared band: live metrics stack in a left column, identity and controls in a
+// right one. A column with no tiles is not drawn, and the right column drops under the left when the width runs out.
 const BAND = 'modz-band'
-const ORDER = ['usage-limits', 'cache-timer', 'model-info', 'orchestrator']
+const SLOTS: Record<string, 'left' | 'right'> = { 'usage-limits': 'left', 'cache-timer': 'left', 'model-info': 'right', orchestrator: 'right' }
+const ORDER = Object.keys(SLOTS)
+const keyOf = (n: RenderNode) => (typeof n !== 'string' && n.type === 'Box' ? String(n.props?.key ?? '') : '')
 const rank = (n: RenderNode) => {
-  const i = typeof n !== 'string' && n.type === 'Box' ? ORDER.indexOf(String(n.props?.key)) : -1
+  const i = ORDER.indexOf(keyOf(n))
   return i < 0 ? ORDER.length : i
 }
 const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: RenderElement) => {
-  const isBand = below.type === 'Box' && below.props?.key === BAND
   const isEmpty = below.type === 'Box' && !below.children?.length
-  const tiles = isBand ? (below.children ?? []) : isEmpty ? [] : [below]
+  const tiles = keyOf(below) === BAND
+    ? (below.type === 'Box' ? below.children ?? [] : []).flatMap(col => (typeof col !== 'string' && col.type === 'Box' ? col.children ?? [] : [col]))
+    : isEmpty ? [] : [below]
+  const all = [...tiles, tile].sort((a, b) => rank(a) - rank(b))
+  const left = all.filter(n => SLOTS[keyOf(n)] !== 'right')
+  const right = all.filter(n => SLOTS[keyOf(n)] === 'right')
+  const isSplit = left.length > 0 && right.length > 0
   return (
-    <Box key={BAND} flexDirection="row" flexWrap="wrap" columnGap={3}>
-      {[...tiles, tile].sort((a, b) => rank(a) - rank(b))}
+    <Box key={BAND} flexDirection="row" flexWrap="wrap" justifyContent="space-between" columnGap={4}>
+      {left.length > 0 && <Box key="modz-left" flexDirection="column">{left}</Box>}
+      {right.length > 0 && <Box key="modz-right" flexDirection="column" alignItems={isSplit ? 'flex-end' : 'flex-start'}>{right}</Box>}
     </Box>
   )
 }
+
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -144,9 +154,10 @@ export const register: Register = on => {
         return models.length ? { ...c, models } : c
       })
 
+    const LABEL_WIDTH = Math.max(...['Mode', 'Models', 'Max agents', 'Context limit'].map(l => l.length))
     const row = (label: string, ...controls: RenderChildren[]) => (
       <Box flexDirection="row" flexWrap="wrap" columnGap={1} paddingLeft={2}>
-        <Text bold>{label}</Text>
+        <Text dimColor>{label.padEnd(LABEL_WIDTH)}</Text>
         {controls}
       </Box>
     )
@@ -176,14 +187,16 @@ export const register: Register = on => {
 
     return pack(Box, below, (
       <Box key="orchestrator" flexDirection="column">
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-          <Button
-            key="orch"
-            label={`${c.isOn ? '● Orchestrator: ON' : '○ Orchestrator: OFF'}  ${open ? '▴' : '▾'}`}
-            variant={c.isOn ? 'primary' : undefined}
-            dimColor={!c.isOn}
-            onPress={() => update($, isOpen, o => !o)}
-          />
+        <Box flexDirection="row" flexWrap="wrap" columnGap={3}>
+          <Box flexDirection="row">
+            <Text color={c.isOn ? 'success' : 'error'}>{c.isOn ? '●' : '○'} </Text>
+            <Button
+              key="orch"
+              plain
+              label={`Orchestrator ${c.isOn ? 'on' : 'off'} ${open ? '▴' : '▾'}`}
+              onPress={() => update($, isOpen, o => !o)}
+            />
+          </Box>
           {open && (
             <Button key="save" plain dimColor label="Save as default" onPress={async () => {
               await $.store.set('defaults', c)

@@ -16,8 +16,8 @@ test('shows hit rate, a warm countdown, and toggles the ttl', async ($, on) => {
     const ui = await $.ui.mount({ plugin: 'cache-timer', surface, component: 'AbovePrompt', props })
     const row = (await ui.find({ key: 'cache-timer' }))?.text ?? ''
     expect(row).toContain('99% hit')
-    expect(row).toContain('406k read / 4k new')
-    expect(row).toMatch(/● warm (59m|1h 0m)/)
+    expect(row).toContain('406k read · 4k new')
+    expect(row).toMatch(/● warm · (59m|1h 0m) left/)
     const before = (await ui.find({ key: 'ttl' }))?.text
     await ui.press({ key: 'ttl' })
     expect((await ui.find({ key: 'ttl' }))?.text).not.toBe(before)
