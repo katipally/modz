@@ -1,4 +1,4 @@
-# Yash-mods
+# modz
 
 Mods for [Claude Code](https://claude.com/claude-code): small plugins that add UI and behavior to the CLI and the desktop Code tab.
 
@@ -7,7 +7,7 @@ Mods for [Claude Code](https://claude.com/claude-code): small plugins that add U
 In any Claude Code session:
 
 ```
-/plugin install <mod> --marketplace katipally/Yash-mods
+/plugin install <mod> --marketplace katipally/modz
 ```
 
 Answer `y` to add the marketplace, then pick a scope (user scope loads it in every session).
@@ -21,7 +21,7 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 ## Layout
 
 ```
-Yash-mods/
+modz/
 ├─ .claude-plugin/marketplace.json   every mod listed here
 ├─ mods/
 │  ├─ agents/     orchestration, subagent control

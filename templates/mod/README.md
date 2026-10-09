@@ -5,7 +5,7 @@ What it does, in one or two lines.
 ## Install
 
 ```
-/plugin install MOD_NAME --marketplace katipally/Yash-mods
+/plugin install MOD_NAME --marketplace katipally/modz
 ```
 
 ## Use
