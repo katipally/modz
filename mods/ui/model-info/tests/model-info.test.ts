@@ -3,7 +3,7 @@ import type { RenderElement } from 'claude-code'
 
 const PROPS = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
 
-test('picks the model and slides effort through /model and /effort, main agent only', async ($, on) => {
+test('picks the model and effort through /model and /effort, main agent only', async ($, on) => {
   const ran: string[] = []
   let model = 'claude-opus-5-5'
   on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
@@ -21,12 +21,10 @@ test('picks the model and slides effort through /model and /effort, main agent o
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'model-info', surface, component: 'AbovePrompt', props: PROPS })
-    expect((await ui.find({ key: 'model-info' }))?.text).toMatch(/effort.*(medium|high)/)
+    expect(['medium', 'high']).toContain((await ui.find({ key: 'effort' }))?.props.value)
     expect(await ui.find({ key: 'modz-left' })).toBeUndefined()
-    await ui.press({ key: 'effort-high' })
-    expect((await ui.find({ key: 'model-info' }))?.text).toContain('high')
-    expect((await ui.find({ key: 'effort-max' }))?.props.dimColor).toBe(true)
-    expect((await ui.find({ key: 'effort-low' }))?.props.dimColor).toBe(false)
+    await ui.select({ key: 'effort', value: 'high' })
+    expect((await ui.find({ key: 'effort' }))?.props.value).toBe('high')
     await ui.unmount()
   }
   const ui = await $.ui.mount({ plugin: 'model-info', surface: 'terminal', component: 'AbovePrompt', props: PROPS })

@@ -62,7 +62,7 @@ export const register: Register = on => {
     const i = await read($, info)
     if (!i) return below
     const elements = $.ui.resolve(e)
-    const { Box, Button, Text } = elements
+    const { Box, Text } = elements
 
     // Both run Claude Code's own /model and /effort, so the change is the session's, not a display.
     const run = async (command: string, args: string) => {
@@ -78,27 +78,32 @@ export const register: Register = on => {
       await run('effort', effort)
       await update($, info, cur => ({ model: cur?.model ?? i.model, effort }))
     }
+    if (!('Select' in elements)) {
+      return pack(Box, below, (
+        <Box key="model-info" flexDirection="row">
+          <Text bold color={TINT}>{modelName(i.model)}</Text>
+          {i.effort && <Text dimColor> · {i.effort}</Text>}
+        </Box>
+      ))
+    }
+    const { Select } = elements
     const family = MODELS.find(m => i.model.includes(m)) ?? i.model
-    const picker = 'Select' in elements ? (
-      <elements.Select
-        key="model"
-        value={family}
-        options={[...new Set([family, ...MODELS])].map(m => ({ value: m, label: m === family ? modelName(i.model) : m[0]!.toUpperCase() + m.slice(1) }))}
-        onSelect={setModel}
-      />
-    ) : <Text bold color={TINT}>{modelName(i.model)}</Text>
-    const at = i.effort === undefined ? -1 : EFFORTS.indexOf(i.effort)
+    const title = (m: string) => m[0]!.toUpperCase() + m.slice(1)
 
     return pack(Box, below, (
       <Box key="model-info" flexDirection="row" flexWrap="wrap" columnGap={2}>
-        {picker}
-        <Box flexDirection="row" columnGap={1}>
-          <Text dimColor>effort</Text>
-          {EFFORTS.map((level, n) => (
-            <Button key={`effort-${level}`} plain label="■" dimColor={n > at} onPress={() => setEffort(level)} />
-          ))}
-          <Text color={TINT}>{i.effort ?? 'auto'}</Text>
-        </Box>
+        <Select
+          key="model"
+          value={family}
+          options={[...new Set([family, ...MODELS])].map(m => ({ value: m, label: m === family ? modelName(i.model) : title(m) }))}
+          onSelect={setModel}
+        />
+        <Select
+          key="effort"
+          value={i.effort}
+          options={(!i.effort || EFFORTS.includes(i.effort) ? EFFORTS : [i.effort, ...EFFORTS]).map(level => ({ value: level, label: `${level} effort` }))}
+          onSelect={setEffort}
+        />
       </Box>
     ))
   })

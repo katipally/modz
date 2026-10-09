@@ -1,7 +1,7 @@
 {
   "name": "model-info",
   "version": "0.1.0",
-  "description": "Model picker and a thinking effort slider for the main agent, above the prompt",
+  "description": "Model and thinking effort pickers for the main agent, above the prompt",
   "author": {
     "name": "katipally"
   },
