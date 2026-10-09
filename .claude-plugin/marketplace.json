@@ -1,0 +1,16 @@
+{
+  "name": "yash-mods",
+  "owner": {
+    "name": "katipally"
+  },
+  "metadata": {
+    "description": "Claude Code mods by katipally"
+  },
+  "plugins": [
+    {
+      "name": "orchestrator",
+      "source": "./mods/orchestrator",
+      "description": "Orchestrator menu above the prompt: models, max agents and context limit for the main agent only"
+    }
+  ]
+}

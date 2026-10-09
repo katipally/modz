@@ -1,0 +1,7 @@
+{
+  "name": "orchestrator",
+  "version": "0.1.0",
+  "description": "Pick orchestrator settings once; only the main agent gets them, and subagent limits are enforced",
+  "author": { "name": "katipally" },
+  "types": "./types/index.d.ts"
+}
