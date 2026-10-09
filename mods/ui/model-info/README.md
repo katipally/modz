@@ -3,7 +3,7 @@
 Pick the model and thinking effort, right above the prompt.
 
 ```
-Opus 5.5 ▾   high effort ▾
+Opus 5.5 ▾   high ▾
 ```
 
 ## Install
@@ -14,7 +14,7 @@ Opus 5.5 ▾   high effort ▾
 
 ## Use
 
-- The model name is a dropdown (Opus, Sonnet, Haiku). Picking one runs Claude Code's own `/model`.
-- The effort dropdown (low, medium, high, xhigh, max) runs Claude Code's own `/effort`.
+- The model dropdown lists exactly what `/config`'s Model row offers your account. Picking one runs Claude Code's own `/model`.
+- The effort dropdown lists the levels `/effort` offers for the current model, and refreshes after a model switch. Picking one runs `/effort`.
 - If a model does not support a level, `/effort` says so in a toast.
 - Shows the main agent only; subagents are ignored.

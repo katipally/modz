@@ -1,12 +1,15 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode } from 'claude-code'
 
-import type { Info } from '../types'
+import type { Choices, Info } from '../types'
 
 const info = atom({ plugin: 'model-info', key: 'info' } as const, null)
+const choices = atom({ plugin: 'model-info', key: 'choices' } as const, { models: [], efforts: [] })
 const TINT = 'merged'
-const MODELS = ['opus', 'sonnet', 'haiku']
-const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
+
+// /effort's hint reads like "[low|medium|high|max|auto|ultracode [on|off]]": its bare words are the levels.
+const levelsOf = (hint: string) => hint.replace(/^[[<]|[\]>]$/g, '').split('|').filter(w => /^[a-z]+$/.test(w))
+const title = (alias: string) => alias[0]!.toUpperCase() + alias.slice(1)
 
 // "claude-opus-5-5" reads "Opus 5.5"; an id in another shape is shown as given.
 const modelName = (id: string) => {
@@ -42,10 +45,26 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
 }
 
 
+// The model row of /config lists what this account can pick; listing the commands asks /effort for its hint.
+const loadChoices = async ($: EngineInterface) => {
+  const row = (await $.config.list()).find(r => r.key === 'model')
+  await update($, choices, c => ({ ...c, models: [...(row?.options ?? [])] }))
+  await $.command.list()
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const model = await $.session.model()
     await update($, info, i => ({ ...i, model }))
+    await loadChoices($)
+    return next(e)
+  })
+
+  on('command.describe', { command: 'effort' }, async ($, e, next) => {
+    if (e.argumentHint) {
+      const efforts = levelsOf(e.argumentHint)
+      await update($, choices, c => ({ ...c, efforts }))
+    }
     return next(e)
   })
 
@@ -59,7 +78,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     if (e.props.hasSurvey) return below
-    const i = await read($, info)
+    const [i, c] = await Promise.all([read($, info), read($, choices)])
     if (!i) return below
     const elements = $.ui.resolve(e)
     const { Box, Text } = elements
@@ -69,41 +88,42 @@ export const register: Register = on => {
       const { text } = await $.command.run({ command, args })
       if (text) $.ui.toast(text)
     }
-    const setModel = async (m: string) => {
-      await run('model', m)
+    const setModel = async (alias: string) => {
+      await run('model', alias)
       const model = await $.session.model()
       await update($, info, cur => ({ ...cur, model }))
+      await $.command.list()
     }
     const setEffort = async (effort: string) => {
       await run('effort', effort)
       await update($, info, cur => ({ model: cur?.model ?? i.model, effort }))
     }
-    if (!('Select' in elements)) {
-      return pack(Box, below, (
-        <Box key="model-info" flexDirection="row">
-          <Text bold color={TINT}>{modelName(i.model)}</Text>
-          {i.effort && <Text dimColor> · {i.effort}</Text>}
-        </Box>
-      ))
-    }
+
+    const plain = (
+      <Box key="model-info" flexDirection="row">
+        <Text bold color={TINT}>{modelName(i.model)}</Text>
+        {i.effort && <Text dimColor> · {i.effort}</Text>}
+      </Box>
+    )
+    if (!('Select' in elements)) return pack(Box, below, plain)
     const { Select } = elements
-    const family = MODELS.find(m => i.model.includes(m)) ?? i.model
-    const title = (m: string) => m[0]!.toUpperCase() + m.slice(1)
+
+    // The alias the current model answers to; "default" only when nothing more specific matches.
+    const current = c.models.find(a => a !== 'default' && i.model.includes(a.replace(/\[.*\]$/, ''))) ?? i.model
+    const models = c.models.includes(current) ? c.models : [current, ...c.models]
+    const efforts = !i.effort || c.efforts.includes(i.effort) ? c.efforts : [i.effort, ...c.efforts]
 
     return pack(Box, below, (
       <Box key="model-info" flexDirection="row" flexWrap="wrap" columnGap={2}>
         <Select
           key="model"
-          value={family}
-          options={[...new Set([family, ...MODELS])].map(m => ({ value: m, label: m === family ? modelName(i.model) : title(m) }))}
+          value={current}
+          options={models.map(a => ({ value: a, label: a === current ? modelName(i.model) : title(a) }))}
           onSelect={setModel}
         />
-        <Select
-          key="effort"
-          value={i.effort}
-          options={(!i.effort || EFFORTS.includes(i.effort) ? EFFORTS : [i.effort, ...EFFORTS]).map(level => ({ value: level, label: `${level} effort` }))}
-          onSelect={setEffort}
-        />
+        {efforts.length > 0
+          ? <Select key="effort" value={i.effort} options={efforts.map(level => ({ value: level }))} onSelect={setEffort} />
+          : i.effort && <Text dimColor>{i.effort}</Text>}
       </Box>
     ))
   })

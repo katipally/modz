@@ -26,8 +26,8 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 Mods that draw above the prompt place a tile in one shared band (`modz-band`) with two columns: live metrics on the left, identity and controls on the right. Each mod's `SLOTS` says which column it takes and in what order.
 
 ```
- wide:    ctx   ███░░░░░░░ 26%   5h 4% · 4h 35m   7d 7% · 6d 17h      Opus 5.5 ▾   medium effort ▾
-          cache 99% · 58m                                                        ● Orchestrator on ▾
+ wide:    ctx   ███░░░░░░░ 26%   5h 4% · 4h 35m   7d 7% · 6d 17h      Opus 5.5 ▾   medium ▾
+          cache 99% · 58m                                                        Orchestrator on ▾
 
  narrow:  the right column drops under the left one
  partial: a column with no tiles is not drawn; a lone column is left-aligned

@@ -11,8 +11,7 @@ An Orchestrator button above the prompt. Pick models, max agents and context lim
 ## Use
 
 ```
-[ ● Orchestrator: ON  ▴ ]   Save as default
-  Mode           On ▾
+Orchestrator on ▾   Save as default        (dropdown: On · Off · Settings…)
   Models         ☑ Opus   ☑ Sonnet   ☐ Haiku
   Max agents     2 agents ▾        (1, 2, Custom…)
   Context limit  200k tokens ▾     (200k, 400k, Custom…)
@@ -22,4 +21,5 @@ An Orchestrator button above the prompt. Pick models, max agents and context lim
 - Subagent spawns are checked: unticked models, spawns past the max, and subagents spawning subagents are refused.
 - The context limit is an instruction to the orchestrator, not a hard cap.
 - `Save as default` keeps your settings across sessions.
-- Without the button (VS Code, mobile): `/orch on|off`, `/orch max=4 ctx=300k models=sonnet,haiku`, `/orch save`, `/orch reset`.
+- Pick Settings… in the dropdown to show or hide the rows below it.
+- Without the dropdown (VS Code, mobile): `/orch on|off`, `/orch max=4 ctx=300k models=sonnet,haiku`, `/orch save`, `/orch reset`.

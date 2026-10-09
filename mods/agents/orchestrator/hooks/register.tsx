@@ -8,6 +8,7 @@ const FALLBACK: Config = { isOn: true, models: ['sonnet', 'haiku'], maxAgents: 2
 const AGENT_PRESETS = [1, 2]
 const CONTEXT_PRESETS = [200, 400]
 const CUSTOM = 'custom'
+const SETTINGS = 'settings'
 const USER_ORIGINS = new Set(['composer', 'bridge', 'sdk'])
 
 const CONFIG_REF = { plugin: 'orchestrator', key: 'config' } as const
@@ -154,7 +155,7 @@ export const register: Register = on => {
         return models.length ? { ...c, models } : c
       })
 
-    const LABEL_WIDTH = Math.max(...['Mode', 'Models', 'Max agents', 'Context limit'].map(l => l.length))
+    const LABEL_WIDTH = Math.max(...['Models', 'Max agents', 'Context limit'].map(l => l.length))
     const row = (label: string, ...controls: RenderChildren[]) => (
       <Box flexDirection="row" flexWrap="wrap" columnGap={1} paddingLeft={2}>
         <Text dimColor>{label.padEnd(LABEL_WIDTH)}</Text>
@@ -188,16 +189,16 @@ export const register: Register = on => {
     return pack(Box, below, (
       <Box key="orchestrator" flexDirection="column">
         <Box flexDirection="row" flexWrap="wrap" columnGap={3}>
-          <Box flexDirection="row">
-            <Text color={c.isOn ? 'planMode' : 'inactive'}>{c.isOn ? '●' : '○'} Orchestrator </Text>
-            <Button
-              key="orch"
-              plain
-              dimColor={!c.isOn}
-              label={`${c.isOn ? 'on' : 'off'} ${open ? '▴' : '▾'}`}
-              onPress={() => update($, isOpen, o => !o)}
-            />
-          </Box>
+          <Select
+            key="orch"
+            value={c.isOn ? 'on' : 'off'}
+            options={[
+              { value: 'on', label: 'Orchestrator on' },
+              { value: 'off', label: 'Orchestrator off' },
+              { value: SETTINGS, label: open ? 'Hide settings' : 'Settings…' },
+            ]}
+            onSelect={v => (v === SETTINGS ? update($, isOpen, o => !o) : set(c => ({ ...c, isOn: v === 'on' })))}
+          />
           {open && (
             <Button key="save" plain dimColor label="Save as default" onPress={async () => {
               await $.store.set('defaults', c)
@@ -205,14 +206,6 @@ export const register: Register = on => {
             }} />
           )}
         </Box>
-        {open && row('Mode', (
-          <Select
-            key="mode"
-            value={c.isOn ? 'on' : 'off'}
-            options={[{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]}
-            onSelect={v => set(c => ({ ...c, isOn: v === 'on' }))}
-          />
-        ))}
         {open && c.isOn && row('Models', ...MODELS.map(m => (
           <Button key={`model-${m}`} plain label={`${c.models.includes(m) ? '☑' : '☐'} ${title(m)}`} dimColor={!c.models.includes(m)} onPress={() => toggle(m)} />
         )))}
