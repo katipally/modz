@@ -2,7 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode } from 'claude-code'
 
 // Claude Code's prompt cache lives 5 minutes or 1 hour depending on the account; the engine does not say which.
-const TTL_CHOICES = [5, 60]
+const TTL_CHOICES: Record<string, number> = { '5m': 5, '1h': 60 }
+const TINT = 'suggestion'
 const TICK_MS = 5000
 
 const last = atom({ plugin: 'cache-timer', key: 'last' } as const, null)
@@ -48,11 +49,21 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
+    await $.command.register({ name: 'cache-ttl', description: 'Set how long the prompt cache stays warm: 5m or 1h', argumentHint: '5m | 1h' })
     const ttl = (await $.store.get('ttlMin')) as number | undefined
     if (ttl) await update($, ttlMin, () => ttl)
     await update($, now, () => Date.now())
     $.clock.every(TICK_MS, () => void update($, now, () => Date.now()))
     return next(e)
+  })
+
+  on('command.run', { command: 'cache-ttl' }, async ($, e) => {
+    const ttl = TTL_CHOICES[e.args.trim()]
+    const current = (await read($, ttlMin)) === 60 ? '1h' : '5m'
+    if (!ttl) return { text: `Cache ttl is ${current}. Use /cache-ttl 5m or /cache-ttl 1h.` }
+    await update($, ttlMin, () => ttl)
+    await $.store.set('ttlMin', ttl)
+    return { text: `Cache ttl set to ${e.args.trim()}.` }
   })
 
   on('turn.step', async function* ($, e, next) {
@@ -72,7 +83,7 @@ export const register: Register = on => {
     const [r, , ttl] = await Promise.all([read($, last), read($, now), read($, ttlMin)])
     const t = Date.now()
     if (!r) return below
-    const { Box, Button, Text } = $.ui.resolve(e)
+    const { Box, Text } = $.ui.resolve(e)
 
     const total = r.read + r.write + r.fresh
     const hit = total ? Math.floor((r.read * 100) / total) : 0
@@ -82,26 +93,13 @@ export const register: Register = on => {
     return pack(Box, below, (
       <Box key="cache-timer" flexDirection="row" flexWrap="wrap" columnGap={3}>
         <Text>
-          <Text dimColor>{'cache'.padEnd(5)} </Text>
+          <Text color={TINT}>{'cache'.padEnd(5)} </Text>
           <Text bold color={hit >= 90 ? 'success' : hit >= 70 ? 'warning' : 'error'}>{hit}% hit</Text>
           <Text dimColor> · {count(r.read)} read · {count(r.write + r.fresh)} new</Text>
         </Text>
-        <Text>
-          <Text color={isWarm ? 'success' : 'error'}>{isWarm ? '●' : '○'} </Text>
-          <Text bold>{isWarm ? 'warm' : 'cold'}</Text>
-          <Text dimColor> · {isWarm ? `${span(left)} left` : `${span(-left)} ago`}</Text>
+        <Text bold color={isWarm ? 'success' : 'error'}>
+          {isWarm ? `● ${span(left)} left` : `○ ${span(-left)} ago`}
         </Text>
-        <Button
-          key="ttl"
-          plain
-          dimColor
-          label={`ttl ${ttl === 60 ? '1h' : `${ttl}m`}`}
-          onPress={async () => {
-            const nextTtl = TTL_CHOICES[(TTL_CHOICES.indexOf(ttl) + 1) % TTL_CHOICES.length]!
-            await update($, ttlMin, () => nextTtl)
-            await $.store.set('ttlMin', nextTtl)
-          }}
-        />
       </Box>
     ))
   })

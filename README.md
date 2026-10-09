@@ -27,13 +27,13 @@ Mods that draw above the prompt place a tile in one shared band (`modz-band`) wi
 
 ```
  wide:    ctx   ▰▰▱▱▱▱▱▱ 26%   5h 4% · 4h 35m left   7d 7% · 6d 17h left      Opus 5.5 · medium · default
-          cache 99% hit · 260k read · 468 new   ● warm · 58m left   ttl 1h          ● Orchestrator on ▾
+          cache 99% hit · 260k read · 468 new   ● 58m left                         ● Orchestrator on ▾
 
  narrow:  the right column drops under the left one
  partial: a column with no tiles is not drawn; a lone column is left-aligned
 ```
 
-One look for every tile: dim labels and details, bold values, and color only for status (green under 50%, yellow 50-79%, red 80%+).
+Each tile has its own Claude theme color (usage `claude`, cache `suggestion`, model `merged`, orchestrator `planMode`). Details are dim and values bold; yellow (50%+) and red (80%+) take over when a limit starts to bite, and the cache timer is green while warm, red once cold.
 
 A new mod that draws above the prompt copies the `pack` helper from any of these mods and adds itself to `SLOTS` in all of them.
 

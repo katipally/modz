@@ -189,11 +189,12 @@ export const register: Register = on => {
       <Box key="orchestrator" flexDirection="column">
         <Box flexDirection="row" flexWrap="wrap" columnGap={3}>
           <Box flexDirection="row">
-            <Text color={c.isOn ? 'success' : 'error'}>{c.isOn ? '●' : '○'} </Text>
+            <Text color={c.isOn ? 'planMode' : 'inactive'}>{c.isOn ? '●' : '○'} Orchestrator </Text>
             <Button
               key="orch"
               plain
-              label={`Orchestrator ${c.isOn ? 'on' : 'off'} ${open ? '▴' : '▾'}`}
+              dimColor={!c.isOn}
+              label={`${c.isOn ? 'on' : 'off'} ${open ? '▴' : '▾'}`}
               onPress={() => update($, isOpen, o => !o)}
             />
           </Box>

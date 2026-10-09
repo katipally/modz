@@ -3,6 +3,7 @@ import type { Register, BoxProps, ElementConstructor, RenderElement, RenderNode 
 
 const info = atom({ plugin: 'model-info', key: 'info' } as const, null)
 const style = atom({ plugin: 'model-info', key: 'style' } as const, null)
+const TINT = 'merged'
 
 // "claude-opus-5-5" reads "Opus 5.5"; an id in another shape is shown as given.
 const modelName = (id: string) => {
@@ -61,7 +62,7 @@ export const register: Register = on => {
 
     return pack(Box, below, (
       <Box key="model-info" flexDirection="row" flexWrap="wrap">
-        <Text bold>{modelName(i.model)}</Text>
+        <Text bold color={TINT}>{modelName(i.model)}</Text>
         {i.effort && sep}
         {i.effort && <Text>{i.effort}</Text>}
         {sep}

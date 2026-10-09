@@ -1,7 +1,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { RenderElement } from 'claude-code'
 
-test('shows hit rate, a warm countdown, and toggles the ttl', async ($, on) => {
+test('shows hit rate, a warm countdown, and sets the ttl by command', async ($, on) => {
   mock.store(on)
   on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
   on('turn.step', async function* () {
@@ -17,11 +17,10 @@ test('shows hit rate, a warm countdown, and toggles the ttl', async ($, on) => {
     const row = (await ui.find({ key: 'cache-timer' }))?.text ?? ''
     expect(row).toContain('99% hit')
     expect(row).toContain('406k read · 4k new')
-    expect(row).toMatch(/● warm · (59m|1h 0m) left/)
-    const before = (await ui.find({ key: 'ttl' }))?.text
-    await ui.press({ key: 'ttl' })
-    expect((await ui.find({ key: 'ttl' }))?.text).not.toBe(before)
-    await ui.press({ key: 'ttl' })
+    expect(row).toMatch(/● (59m|1h 0m) left/)
+    await $.command.run({ command: 'cache-ttl', args: '5m', origin: { kind: 'composer' }, presentation: {} as never })
+    expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/● [45]m/)
+    await $.command.run({ command: 'cache-ttl', args: '1h', origin: { kind: 'composer' }, presentation: {} as never })
     await ui.unmount()
   }
 })

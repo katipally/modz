@@ -49,7 +49,7 @@ describe('orchestrator', () => {
       await $.command.run({ command: 'orch', args: 'on models=sonnet,haiku max=2 ctx=200', origin: { kind: 'composer' }, presentation: {} as never })
       const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 80, scroll: {} as never, view: {} as never }
       const ui = await $.ui.mount({ plugin: 'orchestrator', surface, component: 'AbovePrompt', props })
-      expect((await ui.find({ key: 'orch' }))?.text).toContain('Orchestrator on')
+      expect((await ui.find({ key: 'orch' }))?.text).toMatch(/^on /)
       expect(await ui.find({ key: 'mode' })).toBeUndefined()
       await ui.press({ key: 'orch' })
       await ui.press({ key: 'model-opus' })
@@ -63,7 +63,7 @@ describe('orchestrator', () => {
       expect((await ui.find({ key: 'max' }))?.props.value).toBe('7')
       expect((await ui.find({ key: 'ctx' }))?.props.value).toBe('300')
       await ui.select({ key: 'mode', value: 'off' })
-      expect((await ui.find({ key: 'orch' }))?.text).toContain('Orchestrator off')
+      expect((await ui.find({ key: 'orch' }))?.text).toMatch(/^off /)
       await ui.select({ key: 'mode', value: 'on' })
       await ui.press({ key: 'orch' })
       expect(await ui.find({ key: 'ctx' })).toBeUndefined()
