@@ -1,6 +1,6 @@
 {
   "name": "buddy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Clawd, Claude Code's mascot, animated above the prompt: blinks while idle, walks while working, cheers when a turn is done",
   "author": {
     "name": "katipally"

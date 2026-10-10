@@ -66,6 +66,7 @@ modz/
 2. List it in `.claude-plugin/marketplace.json` with `"source": "./mods/<category>/<mod>"`.
 3. Add a row to the table above and to `mods/<category>/README.md`.
 4. Run `./scripts/check.sh`.
+5. Bump `version` in the mod's `plugin.json` on every change, or installed copies never update.
 
 Run a mod from its folder without installing it:
 
