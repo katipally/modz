@@ -6,7 +6,6 @@ import { H, PX, SKINS, toSvg, W } from './clawd'
 
 // Which prop Clawd picks up for which tool the main agent runs; any other tool keeps him thinking.
 const TOOL_PROPS: Record<string, Activity> = {
-  Bash: 'laptop',
   Edit: 'hammer',
   Write: 'hammer',
   NotebookEdit: 'hammer',
@@ -19,7 +18,20 @@ const TOOL_PROPS: Record<string, Activity> = {
   TodoWrite: 'notes',
   TaskCreate: 'notes',
   TaskUpdate: 'notes',
+  AskUserQuestion: 'ask',
+  Skill: 'skill',
+  EnterPlanMode: 'plan',
+  ExitPlanMode: 'plan',
 }
+// A Bash command is typing unless it is clearly one of these jobs.
+const BASH_JOBS: [RegExp, Activity][] = [
+  [/^\s*git\b/, 'git'],
+  [/\b(test|pytest|jest|vitest|mocha)\b/, 'test'],
+  [/\b(npm|pnpm|yarn|bun|pip3?|brew|apt(-get)?|cargo|gem) (install|add|i|ci)\b/, 'install'],
+  [/\b(build|tsc|make|compile|webpack|gradle|mvn)\b/, 'build'],
+]
+const activityOf = (tool: string, command: string): Activity | undefined =>
+  tool === 'Bash' ? BASH_JOBS.find(([re]) => re.test(command))?.[1] ?? 'laptop' : tool.startsWith('mcp__') ? 'mcp' : TOOL_PROPS[tool]
 // Moods that play for a while after a turn and then settle back to idle.
 const SETTLE_MS: Partial<Record<Mood, number>> = { happy: 2400, oops: 1200 }
 const ASLEEP_AFTER_MS = 120_000
@@ -110,7 +122,7 @@ export const register: Register = on => {
 
   on('tool.call', async ($, e, next) => {
     const isMain = e.agentId === undefined
-    const prop = isMain ? TOOL_PROPS[e.tool] : undefined
+    const prop = isMain ? activityOf(e.tool, 'command' in e ? String(e.command) : '') : undefined
     if (prop) await update($, activity, () => prop)
     // Delegating is long by design, so only other tools count as slow.
     let isSlow = false

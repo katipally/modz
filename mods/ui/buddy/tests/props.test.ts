@@ -2,6 +2,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import type { RenderElement, RenderNode } from 'claude-code'
 
 import { draw } from '../hooks/clawd'
+import { CLICKS, COLS, dealClicks, place } from '../hooks/clawd-moves'
 
 const PROPS = { hasSurvey: false, isWorking: false, maxRows: 8, bodyColumns: 100, scroll: {} as never, view: {} as never }
 
@@ -14,7 +15,7 @@ const lines = (n: RenderNode): string[] => {
 const art = (n: RenderElement) => lines(n).slice(0, 3)
 
 describe('buddy in the terminal', () => {
-  test('is Claude Code\'s three-row Clawd, acting out each tool and hopping when clicked', async ($, on) => {
+  test('is Claude Code\'s three-row Clawd, acting out each tool', async ($, on) => {
     mock.clock(on)
     mock.store(on)
     on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
@@ -59,12 +60,8 @@ describe('buddy in the terminal', () => {
     expect(doing.Agent).toContain('⚑ delegating')
     expect(doing.TodoWrite).toContain('☑ planning')
 
-    await ui.pointer({ type: 'down', x: 3, y: 1, button: 'left', in: 'clawd' })
-    expect(lines(await drawn()).join('')).toContain('♥')
-    expect(art(await drawn())[1]).toBe(' ▗▟█████▙▖ ')
 
     await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't', reason: 'answer' } as never)
-    // The heart plays out first: ten frames, each landing on the next 50ms tick.
     await ui.advance(10 * 150)
     await ui.redraw()
     expect(lines(await drawn()).join('')).toMatch(/[✦✧⋆]/)
@@ -149,6 +146,71 @@ describe('buddy\'s terminal motion and strain', () => {
     await ui.redraw()
     expect(await cell()).not.toMatch(/[◴◷◶◵]/)
     await ui.unmount()
+  })
+
+  test('plays a different click animation each time, all of them before any repeats', async ($, on) => {
+    const ui = await setup($, on)
+    const sprite = async () => lines(await ui.drawn({ in: 'clawd' })).slice(0, 3).map(r => r.slice(1, 10)).join('/')
+    const played: string[] = []
+    for (let i = 0; i < Object.keys(CLICKS).length; i++) {
+      await ui.pointer({ type: 'down', x: 3, y: 1, button: 'left', in: 'clawd' })
+      const seen = [await sprite()]
+      // A click while one plays does nothing.
+      await ui.pointer({ type: 'down', x: 3, y: 1, button: 'left', in: 'clawd' })
+      for (let step = 0; step < 40; step++) {
+        await ui.advance(70)
+        seen.push(await sprite())
+      }
+      played.push(seen.join('|'))
+      expect(seen.at(-1)).toMatch(/\/  ▘▘ ▝▝  $/)
+    }
+    expect(new Set(played).size).toBe(played.length)
+    await ui.unmount()
+  })
+
+  test('has a mode for tests, git, installs, builds, questions, mcp, skills and plan mode', async ($, on) => {
+    const ui = await setup($, on)
+    await $.turn.start({ text: 'hi', turnId: 't' } as never)
+    const doing = async (tool: string, args: object) => {
+      const release = hold()
+      const call = $.tool.call({ tool, ...args } as never)
+      for (let i = 0; i < 20; i++) await Promise.resolve()
+      await ui.redraw()
+      const text = lines(await ui.drawn({ in: 'clawd' })).join('\n')
+      release()
+      await call
+      return text
+    }
+    expect(await doing('Bash', { command: 'npm test' })).toContain('◔ testing')
+    expect(await doing('Bash', { command: 'git status' })).toContain('◆ git')
+    expect(await doing('Bash', { command: 'npm install left-pad' })).toContain('↓ installing')
+    expect(await doing('Bash', { command: 'npm run build' })).toContain('▤ building')
+    expect(await doing('Bash', { command: 'ls' })).toContain('⌨ typing')
+    expect(await doing('AskUserQuestion', { questions: [] })).toContain('? asking')
+    expect(await doing('mcp__notion__search', {})).toContain('↯ connecting')
+    expect(await doing('Skill', { skill: 'x' })).toContain('✦ casting')
+    expect(await doing('EnterPlanMode', {})).toContain('◇ drafting')
+    await ui.unmount()
+  })
+})
+
+describe('buddy\'s moves', () => {
+  test('a deal holds every click once and never opens with the last one', () => {
+    const names = Object.keys(CLICKS).sort()
+    for (let seed = 1; seed < 30; seed++) {
+      let n = seed
+      const random = () => ((n = (n * 16807) % 2147483647) / 2147483647)
+      const last = names[seed % names.length]
+      const deal = dealClicks(last, random)
+      expect([...deal].sort()).toEqual(names)
+      expect(deal[0]).not.toBe(last)
+    }
+  })
+
+  test('every frame stays inside the nine-by-three box', () => {
+    for (const frames of Object.values(CLICKS)) {
+      for (const f of frames) expect(place(f).map(r => [...r].length)).toEqual(Array(3).fill(COLS))
+    }
   })
 })
 

@@ -85,7 +85,14 @@ const stamp = (canvas: Pixels, art: string[], x: number, y: number) =>
   art.forEach((row, dy) => [...row].forEach((c, dx) => c !== '.' && put(canvas, x + dx, y + dy, c)))
 
 // One frame: Clawd's pose for the mood, then what he holds or wears for what the agent is doing.
-export const draw = (m: Mood, act: Activity, f: number, strain: Strain = 'none'): Pixels => {
+// The pixel Clawd has one prop per kind of tool; the newer kinds of work borrow the closest one.
+const PIXEL_PROP: Record<Activity, Activity> = {
+  think: 'think', laptop: 'laptop', hammer: 'hammer', magnify: 'magnify', notes: 'notes', web: 'web', agents: 'agents',
+  test: 'laptop', git: 'laptop', install: 'laptop', build: 'hammer', ask: 'think', mcp: 'web', skill: 'notes', plan: 'think',
+}
+
+export const draw = (m: Mood, activity: Activity, f: number, strain: Strain = 'none'): Pixels => {
+  const act = PIXEL_PROP[activity]
   const g = m === 'idle' ? idleGesture(f) : 'none'
   const isWorking = m === 'working'
   const body = CLAWD.map(r => [...r])

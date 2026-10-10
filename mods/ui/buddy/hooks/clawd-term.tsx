@@ -2,19 +2,14 @@ import type { ClientModule } from 'claude-code'
 
 import type { Activity, Mood, Scene, Strain } from '../types'
 import { FRAME_MS, hex, LOOP, SKINS } from './clawd'
+import { BODY, CLICK_MS, CLICKS, dealClicks, FEET, HEAD, marksOf, place } from './clawd-moves'
+import type { Frame, Mark, Sprite } from './clawd-moves'
 
 // `scene` is refreshed on every draw so the one ticker always plays the latest mood.
-type Local = { scene: Scene; frame: number; elapsed: number; lovedLeft: number }
+type Local = { scene: Scene; frame: number; elapsed: number; click?: { name: string; step: number }; deck: string[]; last?: string }
 
-const TICK_MS = 50
-const LOVED_FRAMES = 10
+const TICK_MS = 30
 const PROP_W = 5
-
-// The terminal's Clawd is the one Claude Code prints on its welcome screen, three rows tall,
-// so he sits beside the tiles without growing the band. Each row has its alternate poses.
-const HEAD = { open: ' ▐▛███▜▌ ', shut: ' ▐█████▌ ', down: ' ▐▙███▟▌ ' }
-const BODY = { rest: '▝▜█████▛▘', both: '▗▟█████▙▖', left: '▗▟█████▛▘', right: '▝▜█████▙▖' }
-const FEET = { stand: '  ▘▘ ▝▝  ', step: '  ▝▘ ▘▝  ', sit: '  ▀▀ ▀▀  ', none: '         ', desk: ' ▄▄▄▄▄▄▄ ' }
 
 // What he is doing reads beside him: a glyph in its own color and a word.
 const DOING: Record<Activity, { glyph: string; word: string; color: number }> = {
@@ -25,52 +20,68 @@ const DOING: Record<Activity, { glyph: string; word: string; color: number }> = 
   web: { glyph: '◎', word: 'browsing', color: 0x7aa2f7 },
   agents: { glyph: '⚑', word: 'delegating', color: 0xe07ab0 },
   notes: { glyph: '☑', word: 'planning', color: 0x5fd38d },
+  test: { glyph: '◔', word: 'testing', color: 0x5fd38d },
+  git: { glyph: '◆', word: 'git', color: 0xf0883e },
+  install: { glyph: '↓', word: 'installing', color: 0x7fd1ae },
+  build: { glyph: '▤', word: 'building', color: 0xf5c542 },
+  ask: { glyph: '?', word: 'asking', color: 0xe07ab0 },
+  mcp: { glyph: '↯', word: 'connecting', color: 0x7aa2f7 },
+  skill: { glyph: '✦', word: 'casting', color: 0xc792ea },
+  plan: { glyph: '◇', word: 'drafting', color: 0xb8bcc4 },
 }
 
-// One frame: his three rows, the prop beside him (one cell per row, PROP_W wide) and the prop's color.
-// `shift` moves only the head, so a shake never drags the whole body sideways.
-type Look = { head: string; body: string; feet: string; prop: string[]; tint: number; shift?: number }
+// One frame: the sprite, the prop beside him (one cell per row, PROP_W wide) and the prop's color.
+type Look = Frame & { prop: string[]; tint: number }
 
 const GREY = 0xb8bcc4
 const GOLD = 0xf5c542
 const RED = 0xe5484d
 const at = (row: number, text: string) => [0, 1, 2].map(r => (r === row ? text : ''))
+const look = (head: string, body: string, feet: string, prop: string[], tint: number, extra: Omit<Frame, 'rows'> = {}): Look => ({ rows: [head, body, feet], prop, tint, ...extra })
 const SPARKS = ['✦', '✧', '⋆', '·']
-const HEARTS = ['♥', '♡']
+const ARC = ['◜', '◠', '◝', '◞', '◡', '◟']
+const arc = (i: number) => ARC[((i % ARC.length) + ARC.length) % ARC.length]!
+const alternate = (f: number, a: string, b: string, every = 1) => (Math.floor(f / every) % 2 === 0 ? a : b)
 
 // Each kind of work owns its motion. He only paces while thinking, so stepping never stands in for a prop.
 const WORK: Record<Activity, (f: number) => Look> = {
-  think: f => ({ head: HEAD.open, body: BODY.rest, feet: f % 2 ? FEET.step : FEET.stand, prop: at(2 - Math.min(f % 4, 2), ['·', '∘', '○', '◯'][f % 4]!), tint: DOING.think.color }),
-  laptop: f => ({ head: HEAD.down, body: f % 2 ? BODY.left : BODY.right, feet: FEET.desk, prop: [0, 1, 2].map(r => '▬'.repeat((f + 2 * r) % 4)), tint: DOING.laptop.color }),
-  hammer: f => f % 4 < 2
-    ? { head: HEAD.open, body: BODY.right, feet: FEET.stand, prop: ['▀█▀', ' █', ''], tint: DOING.hammer.color }
-    : { head: HEAD.open, body: BODY.rest, feet: FEET.stand, prop: ['', ' █', `▄█▄${f % 4 === 2 ? '✦' : '·'}`], tint: DOING.hammer.color },
-  magnify: f => ({ head: HEAD.open, body: BODY.rest, feet: FEET.stand, prop: f % 4 < 2 ? ['◎', ' ╲', ''] : ['', '◎', ' ╲'], tint: DOING.magnify.color }),
-  web: f => ({ head: HEAD.open, body: BODY.rest, feet: FEET.stand, prop: at(0, `·${')'.repeat(f % 4)}`), tint: DOING.web.color }),
-  agents: f => ({ head: HEAD.open, body: BODY.rest, feet: FEET.stand, prop: f % 2 ? ['', '   ▟▙', '▟▙'] : ['', '▟▙', '   ▟▙'], tint: DOING.agents.color }),
-  notes: f => ({ head: HEAD.down, body: BODY.rest, feet: FEET.stand, prop: [0, 1, 2].map(r => (r < f % 4 ? '☑' : '☐')), tint: DOING.notes.color }),
+  think: f => look(alternate(f, HEAD.left, HEAD.right, 4), BODY.rest, f % 2 ? FEET.step : FEET.stand, at(2 - Math.min(f % 4, 2), ['·', '∘', '○', '◯'][f % 4]!), DOING.think.color),
+  laptop: f => look(HEAD.down, alternate(f, BODY.right, BODY.left), FEET.desk, [0, 1, 2].map(r => '▬'.repeat((f + 2 * r) % 4)), DOING.laptop.color),
+  hammer: f => look(HEAD.open, f % 4 < 2 ? BODY.right : BODY.rest, FEET.stand, f % 4 < 2 ? ['▀█▀', ' █', ''] : ['', ' █', `▄█▄${f % 4 === 2 ? '✦' : '·'}`], DOING.hammer.color, f % 4 === 2 ? { offset: 1, dust: true } : {}),
+  magnify: f => look(alternate(f, HEAD.left, HEAD.right, 3), BODY.rest, FEET.stand, f % 4 < 2 ? ['◎', ' ╲', ''] : ['', '◎', ' ╲'], DOING.magnify.color),
+  web: f => look(HEAD.open, f % 4 < 2 ? BODY.both : BODY.rest, FEET.stand, at(0, `·${')'.repeat(f % 4)}`), DOING.web.color),
+  agents: f => look(HEAD.open, alternate(f, BODY.both, BODY.rest), FEET.stand, f % 2 ? ['', '   ▟▙', '▟▙'] : ['', '▟▙', '   ▟▙'], DOING.agents.color),
+  notes: f => look(HEAD.down, alternate(f, BODY.right, BODY.rest), FEET.stand, [0, 1, 2].map(r => (r < f % 4 ? '☑' : '☐')), DOING.notes.color),
+  test: f => look(HEAD.open, BODY.rest, alternate(f, FEET.tapLeft, FEET.tapRight), at(1, `${'▰'.repeat(f % 6)}${'▱'.repeat(5 - (f % 6))}`), DOING.test.color),
+  git: f => look(HEAD.open, alternate(f, BODY.right, BODY.rest, 2), FEET.stand, at(1, [0, 1, 2].map(i => (i === f % 3 ? '●' : '○')).join('─')), DOING.git.color),
+  install: f => look(HEAD.open, f % 3 === 2 ? BODY.both : BODY.rest, FEET.stand, [0, 1, 2].map(r => (r === 2 ? (f % 3 === 2 ? '╰▣╯' : '╰ ╯') : r === f % 3 ? ' ▣' : '')), DOING.install.color),
+  build: f => look(HEAD.down, alternate(f, BODY.left, BODY.right), FEET.stand, at(1, `${arc(f)} ${arc(-f)}`), DOING.build.color),
+  ask: f => look(HEAD.open, BODY.right, alternate(f, FEET.tapLeft, FEET.tapRight, 2), at(0, f % 2 ? ' ?' : '?'), DOING.ask.color),
+  mcp: f => look(HEAD.open, alternate(f, BODY.both, BODY.rest, 2), FEET.stand, at(1, ['─┤ ├─', '─┤↯├─', '─┤↯├─', '─┤ ├─'][f % 4]!), DOING.mcp.color),
+  skill: f => look(HEAD.open, BODY.right, FEET.stand, [0, 1, 2].map(r => (r === f % 3 ? ` ${SPARKS[f % SPARKS.length]}` : r === (f + 1) % 3 ? '⋆' : '')), DOING.skill.color),
+  plan: f => look(alternate(f, HEAD.left, HEAD.right, 4), BODY.rest, FEET.stand, at(0, f % 4 === 3 ? '◉' : '○'), DOING.plan.color),
 }
 
-// Idle blinks at uneven beats and waves one arm with a greeting; the other moods are one loop each.
-const look = (m: Mood, act: Activity, f: number): Look => {
+// Idle blinks, glances both ways and waves one arm with a greeting at uneven beats; the other moods are one loop each.
+const moodLook = (m: Mood, act: Activity, f: number): Look => {
   switch (m) {
     case 'working':
       return WORK[act](f)
-    case 'happy':
-    case 'loved': {
-      const isUp = f % 2 === 0
-      const mark = m === 'happy' ? SPARKS : HEARTS
-      return { head: HEAD.open, body: isUp ? BODY.both : BODY.rest, feet: isUp ? FEET.none : FEET.stand, prop: [0, 1, 2].map(r => `${' '.repeat(r % 2)}${mark[(f + r) % mark.length]}`), tint: m === 'happy' ? GOLD : RED }
+    case 'happy': {
+      const beat = f % 4
+      const sparks = [0, 1, 2].map(r => `${' '.repeat(r % 2)}${SPARKS[(f + r) % SPARKS.length]}`)
+      return beat === 0 ? look(HEAD.open, BODY.rest, FEET.stand, sparks, GOLD, { offset: 1, dust: true })
+        : look(HEAD.open, BODY.both, beat === 3 ? FEET.stand : FEET.none, sparks, GOLD)
     }
     case 'asleep':
-      return { head: HEAD.shut, body: BODY.rest, feet: FEET.sit, prop: at(2 - (f % 3), f % 3 ? 'Z' : 'z'), tint: GREY }
+      return look(HEAD.shut, BODY.rest, FEET.sit, at(2 - (f % 3), f % 3 ? 'Z' : 'z'), GREY)
     case 'oops':
-      return { head: HEAD.shut, body: BODY.rest, feet: FEET.stand, prop: at(0, f % 2 ? '' : '!'), tint: RED, shift: f % 2 }
+      return f % 2 ? look(HEAD.shut, BODY.rest, FEET.stand, at(0, ''), RED, { offset: 1, dust: true }) : look(HEAD.shut, BODY.both, FEET.stand, at(0, '!'), RED)
     default: {
       const beat = f % LOOP.idle
       const isWave = beat >= 34 && beat < 38
-      const isBlink = beat === 7 || beat === 23 || beat === 25
-      return { head: isBlink ? HEAD.shut : HEAD.open, body: isWave && f % 2 === 0 ? BODY.right : BODY.rest, feet: FEET.stand, prop: at(0, isWave ? 'hi!' : ''), tint: GREY }
+      const head = beat === 7 || beat === 23 || beat === 25 ? HEAD.shut : beat >= 12 && beat < 16 ? HEAD.left : beat >= 28 && beat < 32 ? HEAD.right : HEAD.open
+      return look(head, isWave && f % 2 === 0 ? BODY.right : BODY.rest, FEET.stand, at(0, isWave ? 'hi!' : ''), GREY)
     }
   }
 }
@@ -82,51 +93,68 @@ const STRAIN: Record<Exclude<Strain, 'none'>, { cells: string[]; color: number; 
   slow: { cells: ['◴', '◷', '◶', '◵'], color: GOLD, row: () => 0 },
 }
 
-const moodOf = (s: Local): Mood => (s.lovedLeft > 0 ? 'loved' : s.scene.mood)
+// A row's cells, each marked dim where dust or a shadow was drawn over it, grouped into runs of one look.
+const runsOf = (row: string, r: number, marks: Mark[]) => {
+  const cells = [...row].map(ch => ({ ch, isDim: false }))
+  for (const m of marks) if (m.row === r) [...m.text].forEach((ch, i) => void (cells[m.col + i] = { ch, isDim: true }))
+  return cells.reduce<{ text: string; isDim: boolean }[]>((runs, c) => {
+    const last = runs.at(-1)
+    return last?.isDim === c.isDim ? (last.text += c.ch, runs) : [...runs, { text: c.ch, isDim: c.isDim }]
+  }, [])
+}
 
 const Clawd: ClientModule<Scene, Local> = (scene, surface) => {
   const { Box, Text } = surface.elements
   const isFirst = surface.state === undefined
-  const live: Local = surface.state ?? { scene, frame: 0, elapsed: 0, lovedLeft: 0 }
+  const live: Local = surface.state ?? { scene, frame: 0, elapsed: 0, deck: [] }
   live.scene = scene
 
   if (isFirst) {
     surface.setState(live)
     surface.every(TICK_MS, () => {
       const cur = surface.state!
-      if (cur.scene.isStill && cur.lovedLeft === 0) return
+      const frames = cur.click ? CLICKS[cur.click.name]! : undefined
+      if (cur.scene.isStill && !frames) return
       const elapsed = cur.elapsed + TICK_MS
-      if (elapsed < FRAME_MS[moodOf(cur)]) return void (cur.elapsed = elapsed)
-      surface.setState({ ...cur, frame: cur.frame + 1, elapsed: 0, lovedLeft: Math.max(0, cur.lovedLeft - 1) })
+      if (elapsed < (frames ? CLICK_MS : FRAME_MS[cur.scene.mood])) return void (cur.elapsed = elapsed)
+      const step = (cur.click?.step ?? 0) + 1
+      surface.setState({ ...cur, frame: cur.frame + 1, elapsed: 0, click: cur.click && step < frames!.length ? { ...cur.click, step } : undefined })
     })
-    // A click on Clawd makes him hop with a heart, whatever he was doing.
+    // Each click plays the next animation from a shuffled deck, so he never does the same one twice in a row.
     surface.onPointer(e => {
-      if (e.type === 'down') surface.setState({ ...surface.state!, frame: 0, elapsed: 0, lovedLeft: LOVED_FRAMES })
+      const cur = surface.state!
+      if (e.type !== 'down' || cur.click || cur.scene.isStill) return
+      const deck = cur.deck.length ? cur.deck : dealClicks(cur.last)
+      const [name, ...rest] = deck
+      surface.setState({ ...cur, click: { name: name!, step: 0 }, deck: rest, last: name, elapsed: 0 })
     })
   }
 
-  const m = moodOf(live)
   const f = live.frame
   const body = hex(SKINS[scene.skin] ?? SKINS.classic!)
-  const l = look(m, scene.activity, f)
-  const strain = (m === 'idle' || m === 'working') && scene.strain !== 'none' ? STRAIN[scene.strain] : undefined
-  const shift = l.shift ?? (strain && scene.strain === 'cold' ? f % 2 : 0)
-  const doing = m === 'working' ? DOING[scene.activity] : undefined
+  const isClick = live.click !== undefined
+  const strain = !isClick && (scene.mood === 'idle' || scene.mood === 'working') && scene.strain !== 'none' ? STRAIN[scene.strain] : undefined
+  const l: Look = isClick ? { ...CLICKS[live.click!.name]![live.click!.step]!, prop: [], tint: GREY } : moodLook(scene.mood, scene.activity, f)
+  const shift = strain && scene.strain === 'cold' ? f % 2 : 0
+  const rows: Sprite = place({ ...l, x: (l.x ?? 0) + shift })
+  const marks = marksOf(l)
+  const doing = !isClick && scene.mood === 'working' ? DOING[scene.activity] : undefined
 
   return (
     <Box flexDirection="row" columnGap={1}>
       <Box flexDirection="column">
-        {[l.head, l.body, l.feet].map((row, r) => (
+        {rows.map((row, r) => (
           <Text>
             <Text color={strain ? hex(strain.color) : undefined}>{strain && strain.row(f) === r ? strain.cells[f % strain.cells.length] : ' '}</Text>
-            <Text color={body}>{r === 0 ? ' '.repeat(shift) + row + ' '.repeat(1 - shift) : row + ' '}</Text>
+            {runsOf(row, r, marks).map(run => <Text color={run.isDim ? undefined : body} dimColor={run.isDim}>{run.text}</Text>)}
+            <Text> </Text>
           </Text>
         ))}
       </Box>
       <Box flexDirection="column">
-        {l.prop.map((cell, r) => (
+        {[0, 1, 2].map(r => (
           <Text>
-            <Text color={hex(l.tint)}>{cell.padEnd(PROP_W)}</Text>
+            <Text color={hex(l.tint)}>{(l.prop[r] ?? '').padEnd(PROP_W)}</Text>
             {r === 1 && doing && <Text color={hex(doing.color)}>{doing.glyph} {doing.word}</Text>}
           </Text>
         ))}

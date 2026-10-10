@@ -42,7 +42,7 @@ Mods that draw above the prompt place a tile in one shared band (`modz-band`): a
 
 Each tile has its own Claude theme color (usage `claude`, cache `suggestion`, model `merged`, orchestrator `planMode`). Labels and details are dim, values bold. Usage values turn yellow at 60% and red at 85%; the cache time is red once cold.
 
-Small animations play only while something happens: the bot (real pixels, five moods, six skins) acts out each kind of work with its own prop, jumps when a turn ends, shakes its head when stopped, sweats near a limit, checks a clock on a slow tool, shivers when the cache is cold and dozes off when idle; the context bar grows to its new value, the cache twinkles after a hit, a check pops in after a model or effort switch, and the orchestrator spins while its subagents run.
+Small animations play only while something happens: the bot (real pixels, five moods, six skins) acts out fifteen kinds of work with their own props (typing, tests, git, installs, builds, editing, reading, browsing, helpers, checklists, questions, MCP, skills, plan mode and thinking), plays one of 14 click animations from a shuffled deck, jumps when a turn ends, shakes its head when stopped, sweats near a limit, checks a clock on a slow tool, shivers when the cache is cold and dozes off when idle; the context bar grows to its new value, the cache twinkles after a hit, a check pops in after a model or effort switch, and the orchestrator spins while its subagents run.
 
 A new mod that draws above the prompt copies the `pack` helper from any of these mods and adds itself to `SLOTS` in all of them.
 
