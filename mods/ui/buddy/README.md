@@ -27,16 +27,25 @@ Clawd acts out what the agent is doing:
 
 | What he does | When |
 | --- | --- |
-| types on a laptop while a line of text fills the screen | Bash runs |
+| types on a laptop, eyes down, screen glow flickering | Bash runs |
 | swings a hammer, sparks fly | Edit, Write or NotebookEdit runs |
-| scans with a magnifying glass | Read, Grep, Glob, WebFetch or WebSearch runs |
-| looks ahead, steps in place, thought bubbles rise | thinking, no tool running |
+| peers through a magnifying glass, his eye big behind it | Read, Grep or Glob runs |
+| antenna up, signal waves | WebFetch or WebSearch runs |
+| little helpers hop beside him | an Agent (subagent) runs |
+| ticks a checklist | TodoWrite or a task tool runs |
+| steps in place, thought bubbles rise | thinking, no tool running |
 | jumps with arms up, gold crown, confetti | a turn finished |
 | eyes shut, sweat drop, shakes his head | a turn was stopped or errored |
-| nightcap, sits down, `zZz` | 2 minutes with nothing happening |
-| blinks, glances around, waves | idle |
+| nightcap, sits down | 2 minutes with nothing happening |
+| blinks, glances both ways, waves | idle |
 
-**Interaction:** press `♥` next to him to pet him: he jumps and a heart pops up. On desktop he also lifts when the pointer is over him and squishes when pressed.
+**Click him** and he jumps with a heart, whatever he is doing.
+
+Everything he holds stays inside his own box, so the band never changes size. The frames never redraw the band:
+
+- Terminal: Clawd is a `Client` region with its own clock, so only his cells repaint. Clicks need a terminal that reports the mouse.
+- Desktop, VS Code, mobile: one Svg per mood that animates itself (SMIL), with the click reaction built in.
+- With reduced motion on, he holds still.
 
 Styles: `/buddy skin classic | ink | mint | sky | berry | gold` (classic is Clawd's own color; the choice is remembered).
 
