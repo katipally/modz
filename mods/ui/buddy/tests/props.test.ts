@@ -72,6 +72,86 @@ describe('buddy in the terminal', () => {
   })
 })
 
+describe('buddy\'s terminal motion and strain', () => {
+  let gate: Promise<void> = Promise.resolve()
+  // Holds every tool call until the returned release runs, so a test can look at Clawd while it works.
+  const hold = () => {
+    let release: () => void = () => {}
+    gate = new Promise<void>(r => (release = r))
+    return release
+  }
+  let clock: ReturnType<typeof mock.clock>
+  const setup = async ($: any, on: any) => {
+    gate = Promise.resolve()
+    clock = mock.clock(on)
+    mock.store(on)
+    on('ui.render', ($: any, e: any) => h($.ui.resolve(e).Box, {}) as RenderElement)
+    on('session.start', (_: any, e: any) => ({ cwd: e.cwd }))
+    on('settings.read', () => ({ value: {} }) as never)
+    on('command.register', (_: any, e: any) => ({ value: { command: e.name } }) as never)
+    on('turn.start', (_: any, e: any) => ({ turnId: e.turnId }))
+    on('session.measure', (_: any, e: any) => ({ changed: e.changed }))
+    on('tool.call', async () => {
+      await gate
+      return { result: 'ok' } as never
+    })
+    await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true } as never)
+    return $.ui.mount({ plugin: 'buddy', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  }
+
+  test('every kind of work moves its own prop beside him', async ($, on) => {
+    const ui = await setup($, on)
+    await $.turn.start({ text: 'hi', turnId: 't' } as never)
+    const frames = async (tool: string, args: object) => {
+      const release = hold()
+      const call = $.tool.call({ tool, ...args } as never)
+      for (let i = 0; i < 20; i++) await Promise.resolve()
+      await ui.redraw()
+      const seen = new Set<string>()
+      for (let i = 0; i < 8; i++) {
+        const all = lines(await ui.drawn({ in: 'clawd' }))
+        seen.add([all[3], all[5]].join('|'))
+        await ui.advance(200)
+      }
+      release()
+      await call
+      return seen
+    }
+    const props: Set<string>[] = []
+    for (const [tool, args] of [['Bash', { command: 'ls' }], ['Edit', { file_path: '/a', old_string: 'a', new_string: 'b' }], ['Read', { file_path: '/a' }], ['WebSearch', { query: 'q' }], ['Agent', { prompt: 'p', description: 'd' }], ['TodoWrite', { todos: [] }]] as const) {
+      const seen = await frames(tool, args)
+      expect(seen.size).toBeGreaterThan(1)
+      props.push(seen)
+    }
+    // No two kinds of work share a frame, so none of them is just feet stepping.
+    props.forEach((a, i) => props.slice(i + 1).forEach(b => expect([...a].some(x => b.has(x))).toBe(false)))
+    await ui.unmount()
+  })
+
+  test('sweats near a limit and checks a clock on a slow tool', async ($, on) => {
+    const ui = await setup($, on)
+    const cell = async () => lines(await ui.drawn({ in: 'clawd' })).slice(0, 3).map(r => r[0]).join('')
+    expect(await cell()).toBe('   ')
+
+    await $.session.measure({ context: { window: 200_000, percent: 90 }, rateLimits: [], changed: ['context'] } as never)
+    await ui.redraw()
+    expect(await cell()).toContain('°')
+    await $.session.measure({ context: { window: 200_000, percent: 10 }, rateLimits: [], changed: ['context'] } as never)
+
+    await $.turn.start({ text: 'hi', turnId: 't' } as never)
+    const release = hold()
+    const call = $.tool.call({ tool: 'Bash', command: 'sleep 99' } as never)
+    await clock.advance(11_000)
+    await ui.redraw()
+    expect(await cell()).toMatch(/[◴◷◶◵]/)
+    release()
+    await call
+    await ui.redraw()
+    expect(await cell()).not.toMatch(/[◴◷◶◵]/)
+    await ui.unmount()
+  })
+})
+
 describe('buddy\'s pixel Clawd (desktop, VS Code, mobile)', () => {
   const rows = (...args: Parameters<typeof draw>) => draw(...args).map(r => r.map(c => c ?? '.').join(''))
 
@@ -104,7 +184,13 @@ describe('buddy\'s pixel Clawd (desktop, VS Code, mobile)', () => {
     expect(rows('happy', 'think', 0).slice(0, 2).map(r => r.slice(7, 12))).toEqual(['y.y.y', 'yyyyy'])
     expect(rows('loved', 'think', 0).slice(0, 2).map(r => r.slice(7, 12))).toEqual(['rr.rr', '.rrr.'])
     for (const act of ['think', 'laptop', 'hammer', 'magnify', 'web', 'agents', 'notes'] as const) {
-      expect(at(act).map(r => r.length)).toEqual(Array(12).fill(19))
+      for (const strain of ['none', 'hot', 'cold', 'slow'] as const) {
+        for (let f = 0; f < 8; f++) expect(rows('working', act, f, strain).map(r => r.length)).toEqual(Array(12).fill(19))
+      }
     }
+    expect(rows('idle', 'think', 0, 'slow').join('')).toContain('r')
+    expect(rows('idle', 'think', 0, 'hot').join('')).toContain('b')
+    expect(rows('idle', 'think', 0, 'cold').join('')).toContain('W')
+    expect(rows('happy', 'think', 0, 'hot')).toEqual(rows('happy', 'think', 0))
   })
 })

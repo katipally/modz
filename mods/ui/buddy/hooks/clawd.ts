@@ -1,4 +1,4 @@
-import type { Activity, Mood } from '../types'
+import type { Activity, Mood, Strain } from '../types'
 
 // Clawd exactly as Claude Code draws him (its built-in mods guide's CLAWD_POSES): C body, E eye, . nothing.
 const CLAWD = [
@@ -85,7 +85,7 @@ const stamp = (canvas: Pixels, art: string[], x: number, y: number) =>
   art.forEach((row, dy) => [...row].forEach((c, dx) => c !== '.' && put(canvas, x + dx, y + dy, c)))
 
 // One frame: Clawd's pose for the mood, then what he holds or wears for what the agent is doing.
-export const draw = (m: Mood, act: Activity, f: number): Pixels => {
+export const draw = (m: Mood, act: Activity, f: number, strain: Strain = 'none'): Pixels => {
   const g = m === 'idle' ? idleGesture(f) : 'none'
   const isWorking = m === 'working'
   const body = CLAWD.map(r => [...r])
@@ -179,6 +179,20 @@ export const draw = (m: Mood, act: Activity, f: number): Pixels => {
   if (m === 'loved') stamp(canvas, HEART, ox + 6, oy - 2)
   if (m === 'asleep') stamp(canvas, NIGHTCAP, ox + 3, oy - 2)
   if (m === 'oops') put(canvas, ox + 15, oy + 1 + (f % 2), 'b')
+  if (m === 'idle' || isWorking) {
+    const free = (x: number, y: number, c: string) => canvas[y]?.[x] === undefined && put(canvas, x, y, c)
+    // Sweat runs down his left side, snow drifts down his right, a clock hand turns above his shoulder.
+    if (strain === 'hot') for (const dy of [0, 1]) free(ox, oy + (f % 4) + dy, 'b')
+    if (strain === 'cold') {
+      free(ox + 16, oy + (f % 4), 'W')
+      free(ox + 17, oy + ((f + 2) % 4), 'W')
+    }
+    if (strain === 'slow') {
+      stamp(canvas, ['ggg', 'gWg', 'ggg'], ox + 15, oy - 2)
+      const [hx, hy] = [[1, 0], [2, 1], [1, 2], [0, 1]][f % 4]!
+      put(canvas, ox + 15 + hx!, oy - 2 + hy!, 'r')
+    }
+  }
   return canvas
 }
 
@@ -203,9 +217,9 @@ const rectsOf = (px: Pixels, body: number) =>
 
 // The desktop's Clawd is one Svg that animates itself: each distinct frame is a group shown for its slice of the
 // loop, so the page never swaps the picture. A click on him plays the loved jump with a heart, all inside the Svg.
-export const toSvg = (m: Mood, act: Activity, body: number, isStill: boolean) => {
+export const toSvg = (m: Mood, act: Activity, body: number, isStill: boolean, strain: Strain = 'none') => {
   const n = isStill ? 1 : LOOP[m]
-  const frames = Array.from({ length: n }, (_, f) => rectsOf(draw(m, act, f), body))
+  const frames = Array.from({ length: n }, (_, f) => rectsOf(draw(m, act, f, strain), body))
   const spans: { rects: string; from: number; to: number }[] = []
   frames.forEach((rects, f) => {
     const last = spans.at(-1)

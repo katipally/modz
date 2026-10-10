@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, Timer } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, SessionContextUsage, SessionRateLimit, Timer } from 'claude-code'
 
-import type { Activity, Mood } from '../types'
+import type { Activity, Mood, Strain } from '../types'
 import { H, PX, SKINS, toSvg, W } from './clawd'
 
 // Which prop Clawd picks up for which tool the main agent runs; any other tool keeps him thinking.
@@ -23,10 +23,20 @@ const TOOL_PROPS: Record<string, Activity> = {
 // Moods that play for a while after a turn and then settle back to idle.
 const SETTLE_MS: Partial<Record<Mood, number>> = { happy: 2400, oops: 1200 }
 const ASLEEP_AFTER_MS = 120_000
+// He sweats from 85% of any limit, and checks a clock when one tool has run this long.
+const HOT_PERCENT = 85
+const SLOW_MS = 10_000
 
 const mood = atom({ plugin: 'buddy', key: 'mood' } as const, 'idle')
 const activity = atom({ plugin: 'buddy', key: 'activity' } as const, 'think')
 const skin = atom({ plugin: 'buddy', key: 'skin' } as const, 'classic')
+const signals = atom({ plugin: 'buddy', key: 'signals' } as const, { hot: false, slow: 0 })
+// The cache-timer mod owns these; without it the cache is simply never cold.
+const cacheLast = atom({ plugin: 'cache-timer', key: 'last' } as const, null)
+const cacheTtl = atom({ plugin: 'cache-timer', key: 'ttlMin' } as const, 60)
+
+const isHot = (context: SessionContextUsage, limits: SessionRateLimit[]) =>
+  [context.percent, ...limits.map(l => l.percentUsed)].some(p => p !== undefined && p >= HOT_PERCENT)
 
 // Every modz mod places its tile in one shared band: a lead column (the bot), then a column of tiles, then an optional
 // right column. A column with no tiles is not drawn, and columns wrap under each other when the width runs out.
@@ -93,12 +103,30 @@ export const register: Register = on => {
     return next(e)
   })
 
+  on('session.measure', async ($, e, next) => {
+    await update($, signals, s => ({ ...s, hot: isHot(e.context, e.rateLimits) }))
+    return next(e)
+  })
+
   on('tool.call', async ($, e, next) => {
-    const prop = e.agentId === undefined ? TOOL_PROPS[e.tool] : undefined
+    const isMain = e.agentId === undefined
+    const prop = isMain ? TOOL_PROPS[e.tool] : undefined
     if (prop) await update($, activity, () => prop)
-    const ran = await next(e)
-    if (prop) await update($, activity, () => 'think' as Activity)
-    return ran
+    // Delegating is long by design, so only other tools count as slow.
+    let isSlow = false
+    const watch = isMain && e.tool !== 'Agent'
+      ? $.clock.after(SLOW_MS, async () => {
+        isSlow = true
+        await update($, signals, s => ({ ...s, slow: s.slow + 1 }))
+      })
+      : undefined
+    try {
+      return await next(e)
+    } finally {
+      watch?.cancel()
+      if (isSlow) await update($, signals, s => ({ ...s, slow: s.slow - 1 }))
+      if (prop) await update($, activity, () => 'think' as Activity)
+    }
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -111,13 +139,15 @@ export const register: Register = on => {
     if (e.props.hasSurvey) return below
     const elements = $.ui.resolve(e)
     const { Box } = elements
-    const [m, act, s] = await Promise.all([read($, mood), read($, activity), read($, skin)])
+    const [m, act, s, sig, last, ttl] = await Promise.all([read($, mood), read($, activity), read($, skin), read($, signals), read($, cacheLast), read($, cacheTtl)])
+    const isCold = last !== null && Date.now() > last.at + ttl * 60_000
+    const strain: Strain = sig.hot ? 'hot' : sig.slow > 0 ? 'slow' : isCold ? 'cold' : 'none'
     const isStill = (await $.settings.read()).prefersReducedMotion === true
     // The terminal runs Clawd as a Client on its own clock; elsewhere he is one Svg that animates itself.
     const art = e.surface === 'terminal' && 'Client' in elements
-      ? <elements.Client key="clawd" module="./clawd-term.tsx" props={{ mood: m, activity: act, skin: s, isStill }} />
+      ? <elements.Client key="clawd" module="./clawd-term.tsx" props={{ mood: m, activity: act, skin: s, isStill, strain }} />
       : 'Svg' in elements
-        ? <elements.Svg source={toSvg(m, act, SKINS[s] ?? SKINS.classic!, isStill)} alt={`Clawd, ${m}`} width={W * PX} height={H * PX} isInteractive={!isStill} />
+        ? <elements.Svg source={toSvg(m, act, SKINS[s] ?? SKINS.classic!, isStill, strain)} alt={`Clawd, ${m}`} width={W * PX} height={H * PX} isInteractive={!isStill} />
         : null
     if (!art) return below
 

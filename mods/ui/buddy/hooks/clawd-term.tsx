@@ -1,6 +1,6 @@
 import type { ClientModule } from 'claude-code'
 
-import type { Activity, Mood, Scene } from '../types'
+import type { Activity, Mood, Scene, Strain } from '../types'
 import { FRAME_MS, hex, LOOP, SKINS } from './clawd'
 
 // `scene` is refreshed on every draw so the one ticker always plays the latest mood.
@@ -8,12 +8,13 @@ type Local = { scene: Scene; frame: number; elapsed: number; lovedLeft: number }
 
 const TICK_MS = 50
 const LOVED_FRAMES = 10
+const PROP_W = 5
 
 // The terminal's Clawd is the one Claude Code prints on its welcome screen, three rows tall,
 // so he sits beside the tiles without growing the band. Each row has its alternate poses.
 const HEAD = { open: ' ▐▛███▜▌ ', shut: ' ▐█████▌ ', down: ' ▐▙███▟▌ ' }
-const BODY = { rest: '▝▜█████▛▘', up: '▗▟█████▙▖' }
-const FEET = { stand: '  ▘▘ ▝▝  ', step: '  ▝▘ ▘▝  ', sit: '  ▀▀ ▀▀  ', none: '         ' }
+const BODY = { rest: '▝▜█████▛▘', both: '▗▟█████▙▖', left: '▗▟█████▛▘', right: '▝▜█████▙▖' }
+const FEET = { stand: '  ▘▘ ▝▝  ', step: '  ▝▘ ▘▝  ', sit: '  ▀▀ ▀▀  ', none: '         ', desk: ' ▄▄▄▄▄▄▄ ' }
 
 // What he is doing reads beside him: a glyph in its own color and a word.
 const DOING: Record<Activity, { glyph: string; word: string; color: number }> = {
@@ -25,27 +26,63 @@ const DOING: Record<Activity, { glyph: string; word: string; color: number }> = 
   agents: { glyph: '⚑', word: 'delegating', color: 0xe07ab0 },
   notes: { glyph: '☑', word: 'planning', color: 0x5fd38d },
 }
-const ASIDE: Partial<Record<Mood, { frames: string[]; color: number }>> = {
-  happy: { frames: ['✦', '✧', '⋆', '✧'], color: 0xf5c542 },
-  loved: { frames: ['♥', '♡'], color: 0xe5484d },
-  oops: { frames: ['!', ' '], color: 0xe5484d },
-  asleep: { frames: ['z', 'zZ', 'zZz'], color: 0xb8bcc4 },
+
+// One frame: his three rows, the prop beside him (one cell per row, PROP_W wide) and the prop's color.
+// `shift` moves only the head, so a shake never drags the whole body sideways.
+type Look = { head: string; body: string; feet: string; prop: string[]; tint: number; shift?: number }
+
+const GREY = 0xb8bcc4
+const GOLD = 0xf5c542
+const RED = 0xe5484d
+const at = (row: number, text: string) => [0, 1, 2].map(r => (r === row ? text : ''))
+const SPARKS = ['✦', '✧', '⋆', '·']
+const HEARTS = ['♥', '♡']
+
+// Each kind of work owns its motion. He only paces while thinking, so stepping never stands in for a prop.
+const WORK: Record<Activity, (f: number) => Look> = {
+  think: f => ({ head: HEAD.open, body: BODY.rest, feet: f % 2 ? FEET.step : FEET.stand, prop: at(2 - Math.min(f % 4, 2), ['·', '∘', '○', '◯'][f % 4]!), tint: DOING.think.color }),
+  laptop: f => ({ head: HEAD.down, body: f % 2 ? BODY.left : BODY.right, feet: FEET.desk, prop: [0, 1, 2].map(r => '▬'.repeat((f + 2 * r) % 4)), tint: DOING.laptop.color }),
+  hammer: f => f % 4 < 2
+    ? { head: HEAD.open, body: BODY.right, feet: FEET.stand, prop: ['▀█▀', ' █', ''], tint: DOING.hammer.color }
+    : { head: HEAD.open, body: BODY.rest, feet: FEET.stand, prop: ['', ' █', `▄█▄${f % 4 === 2 ? '✦' : '·'}`], tint: DOING.hammer.color },
+  magnify: f => ({ head: HEAD.open, body: BODY.rest, feet: FEET.stand, prop: f % 4 < 2 ? ['◎', ' ╲', ''] : ['', '◎', ' ╲'], tint: DOING.magnify.color }),
+  web: f => ({ head: HEAD.open, body: BODY.rest, feet: FEET.stand, prop: at(0, `·${')'.repeat(f % 4)}`), tint: DOING.web.color }),
+  agents: f => ({ head: HEAD.open, body: BODY.rest, feet: FEET.stand, prop: f % 2 ? ['', '   ▟▙', '▟▙'] : ['', '▟▙', '   ▟▙'], tint: DOING.agents.color }),
+  notes: f => ({ head: HEAD.down, body: BODY.rest, feet: FEET.stand, prop: [0, 1, 2].map(r => (r < f % 4 ? '☑' : '☐')), tint: DOING.notes.color }),
+}
+
+// Idle blinks at uneven beats and waves one arm with a greeting; the other moods are one loop each.
+const look = (m: Mood, act: Activity, f: number): Look => {
+  switch (m) {
+    case 'working':
+      return WORK[act](f)
+    case 'happy':
+    case 'loved': {
+      const isUp = f % 2 === 0
+      const mark = m === 'happy' ? SPARKS : HEARTS
+      return { head: HEAD.open, body: isUp ? BODY.both : BODY.rest, feet: isUp ? FEET.none : FEET.stand, prop: [0, 1, 2].map(r => `${' '.repeat(r % 2)}${mark[(f + r) % mark.length]}`), tint: m === 'happy' ? GOLD : RED }
+    }
+    case 'asleep':
+      return { head: HEAD.shut, body: BODY.rest, feet: FEET.sit, prop: at(2 - (f % 3), f % 3 ? 'Z' : 'z'), tint: GREY }
+    case 'oops':
+      return { head: HEAD.shut, body: BODY.rest, feet: FEET.stand, prop: at(0, f % 2 ? '' : '!'), tint: RED, shift: f % 2 }
+    default: {
+      const beat = f % LOOP.idle
+      const isWave = beat >= 34 && beat < 38
+      const isBlink = beat === 7 || beat === 23 || beat === 25
+      return { head: isBlink ? HEAD.shut : HEAD.open, body: isWave && f % 2 === 0 ? BODY.right : BODY.rest, feet: FEET.stand, prop: at(0, isWave ? 'hi!' : ''), tint: GREY }
+    }
+  }
+}
+
+// A strain shows in the cell left of him, one row at a time: sweat falls, snow falls, a clock hand turns.
+const STRAIN: Record<Exclude<Strain, 'none'>, { cells: string[]; color: number; row: (f: number) => number }> = {
+  hot: { cells: ['°'], color: 0x7aa2f7, row: f => f % 3 },
+  cold: { cells: ['*'], color: 0x9ad0ff, row: f => (f + 1) % 3 },
+  slow: { cells: ['◴', '◷', '◶', '◵'], color: GOLD, row: () => 0 },
 }
 
 const moodOf = (s: Local): Mood => (s.lovedLeft > 0 ? 'loved' : s.scene.mood)
-
-// One frame of the banner Clawd for the mood: blinks and glances in idle, steps while working,
-// arms up and a hop when happy or petted, a shake when a turn goes wrong, folded legs asleep.
-const pose = (m: Mood, act: Activity, f: number) => {
-  const beat = f % LOOP.idle
-  const isBlink = m === 'idle' && (beat === 7 || beat === 23 || beat === 25)
-  const isUp = (m === 'happy' || m === 'loved') && f % 2 === 0
-  const head = m === 'asleep' || m === 'oops' || isBlink ? HEAD.shut : m === 'working' && (act === 'laptop' || act === 'notes') ? HEAD.down : HEAD.open
-  const body = isUp || (m === 'idle' && beat >= 34 && beat < 38 && f % 2 === 0) ? BODY.up : BODY.rest
-  const feet = m === 'asleep' ? FEET.sit : isUp ? FEET.none : m === 'working' && f % 2 === 1 ? FEET.step : FEET.stand
-  const shake = m === 'oops' ? (f % 2 === 0 ? 0 : 2) : 1
-  return [head, body, feet].map(row => ' '.repeat(shake) + row + ' '.repeat(2 - shake))
-}
 
 const Clawd: ClientModule<Scene, Local> = (scene, surface) => {
   const { Box, Text } = surface.elements
@@ -69,20 +106,30 @@ const Clawd: ClientModule<Scene, Local> = (scene, surface) => {
   }
 
   const m = moodOf(live)
+  const f = live.frame
   const body = hex(SKINS[scene.skin] ?? SKINS.classic!)
-  const rows = pose(m, scene.activity, live.frame)
-  const aside = ASIDE[m]
+  const l = look(m, scene.activity, f)
+  const strain = (m === 'idle' || m === 'working') && scene.strain !== 'none' ? STRAIN[scene.strain] : undefined
+  const shift = l.shift ?? (strain && scene.strain === 'cold' ? f % 2 : 0)
   const doing = m === 'working' ? DOING[scene.activity] : undefined
-  const dots = m === 'working' && scene.activity === 'think' ? '·'.repeat((live.frame % 3) + 1) : ''
 
   return (
     <Box flexDirection="row" columnGap={1}>
       <Box flexDirection="column">
-        {rows.map(row => <Text color={body}>{row}</Text>)}
+        {[l.head, l.body, l.feet].map((row, r) => (
+          <Text>
+            <Text color={strain ? hex(strain.color) : undefined}>{strain && strain.row(f) === r ? strain.cells[f % strain.cells.length] : ' '}</Text>
+            <Text color={body}>{r === 0 ? ' '.repeat(shift) + row + ' '.repeat(1 - shift) : row + ' '}</Text>
+          </Text>
+        ))}
       </Box>
       <Box flexDirection="column">
-        <Text color={aside ? hex(aside.color) : undefined} dimColor={!aside}>{aside ? aside.frames[live.frame % aside.frames.length] : dots}</Text>
-        {doing && <Text color={hex(doing.color)}>{doing.glyph} {doing.word}</Text>}
+        {l.prop.map((cell, r) => (
+          <Text>
+            <Text color={hex(l.tint)}>{cell.padEnd(PROP_W)}</Text>
+            {r === 1 && doing && <Text color={hex(doing.color)}>{doing.glyph} {doing.word}</Text>}
+          </Text>
+        ))}
       </Box>
     </Box>
   )
