@@ -1,6 +1,6 @@
 {
   "name": "model-info",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Model and thinking effort pickers for the main agent, above the prompt",
   "author": {
     "name": "katipally"

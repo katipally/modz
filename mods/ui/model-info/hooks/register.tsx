@@ -1,11 +1,12 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, SelectOption } from 'claude-code'
 
 import type { Choices, Info } from '../types'
 
 const info = atom({ plugin: 'model-info', key: 'info' } as const, null)
 const choices = atom({ plugin: 'model-info', key: 'choices' } as const, { models: [], efforts: [] })
 const isConfirmed = atom({ plugin: 'model-info', key: 'isConfirmed' } as const, false)
+const openMenu = atom({ plugin: 'model-info', key: 'openMenu' } as const, null)
 const CONFIRM_MS = 1500
 
 const confirm = async ($: EngineInterface) => {
@@ -90,7 +91,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     if (e.props.hasSurvey) return below
-    const [i, c, ok] = await Promise.all([read($, info), read($, choices), read($, isConfirmed)])
+    const [i, c, ok, menu] = await Promise.all([read($, info), read($, choices), read($, isConfirmed), read($, openMenu)])
     if (!i) return below
     const elements = $.ui.resolve(e)
     const { Box, Text } = elements
@@ -120,7 +121,25 @@ export const register: Register = on => {
       </Box>
     )
     if (!('Select' in elements)) return pack(Box, below, plain)
-    const { Select } = elements
+    const { Button, Select } = elements
+    // In the terminal a Select answers only the keyboard, so there a dropdown is a button that opens a row of
+    // option buttons a click can pick from; every other surface keeps its native Select.
+    const dropdown = (key: string, value: string | undefined, options: readonly SelectOption[], onSelect: (v: string) => unknown) => {
+      if (e.surface !== 'terminal') return <Select key={key} value={value} options={options} onSelect={onSelect} />
+      const isShown = menu === key
+      const labelOf = (v: string | undefined) => options.find(o => o.value === v)?.label ?? v ?? '…'
+      return (
+        <Box flexDirection="row" columnGap={1}>
+          <Button key={key} plain label={`${labelOf(value)} ${isShown ? '▴' : '▾'}`} onPress={() => update($, openMenu, m => (m === key ? null : key))} />
+          {isShown && options.filter(o => o.value !== value).map(o => (
+            <Button key={`${key}:${o.value}`} plain dimColor label={o.label ?? o.value} onPress={async () => {
+              await update($, openMenu, () => null)
+              await onSelect(o.value)
+            }} />
+          ))}
+        </Box>
+      )
+    }
 
     // The alias the current model answers to; "default" only when nothing more specific matches.
     const current = c.models.find(a => a !== 'default' && i.model.includes(a.replace(/\[.*\]$/, ''))) ?? i.model
@@ -129,14 +148,9 @@ export const register: Register = on => {
 
     return pack(Box, below, (
       <Box key="model-info" flexDirection="row" flexWrap="wrap" columnGap={2}>
-        <Select
-          key="model"
-          value={current}
-          options={models.map(a => ({ value: a, label: a === current ? modelName(i.model) : title(a) }))}
-          onSelect={setModel}
-        />
+        {dropdown('model', current, models.map(a => ({ value: a, label: a === current ? modelName(i.model) : title(a) })), setModel)}
         {efforts.length > 0
-          ? <Select key="effort" value={i.effort} options={efforts.map(level => ({ value: level }))} onSelect={setEffort} />
+          ? dropdown('effort', i.effort, efforts.map(level => ({ value: level })), setEffort)
           : i.effort && <Text dimColor>{i.effort}</Text>}
         {ok && <Text color="success">✓</Text>}
       </Box>

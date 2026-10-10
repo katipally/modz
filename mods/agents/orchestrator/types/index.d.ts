@@ -11,6 +11,6 @@ export type Config = {
 
 declare module 'claude-code' {
   interface PluginState {
-    orchestrator: { config: Config; spawned: number; editing: Field | null; isOpen: boolean; running: string[]; spin: number }
+    orchestrator: { config: Config; spawned: number; editing: Field | null; isOpen: boolean; running: string[]; spin: number; openMenu: string | null }
   }
 }

@@ -43,7 +43,7 @@ Clawd acts out what the agent is doing:
 
 Everything he holds stays inside his own box, so the band never changes size. The frames never redraw the band:
 
-- Terminal: Clawd is a `Client` region with its own clock, so only his cells repaint. Clicks need a terminal that reports the mouse.
+- Terminal: Clawd is the three-row Clawd from Claude Code's welcome screen, with what he is doing written beside him (`⌨ typing`, `✎ editing`, `⌕ reading`, `◎ browsing`, `⚑ delegating`, `☑ planning`). He runs as a `Client` region on his own clock, so only his cells repaint. Clicks need the fullscreen terminal (`"tui": "fullscreen"`).
 - Desktop, VS Code, mobile: one Svg per mood that animates itself (SMIL), with the click reaction built in.
 - With reduced motion on, he holds still.
 

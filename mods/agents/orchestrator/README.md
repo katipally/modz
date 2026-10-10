@@ -23,3 +23,4 @@ Orchestrator on ▾   Save as default        (dropdown: On · Off · Settings…
 - `Save as default` keeps your settings across sessions.
 - Pick Settings… in the dropdown to show or hide the rows below it.
 - Without the dropdown (VS Code, mobile): `/orch on|off`, `/orch max=4 ctx=300k models=sonnet,haiku`, `/orch save`, `/orch reset`.
+- In the terminal each dropdown is a button that opens a row of options you can click (a terminal Select only answers the keyboard).

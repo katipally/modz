@@ -2,6 +2,23 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { RenderElement } from 'claude-code'
 import type { AgentSpawnInput } from 'claude-code'
 
+// Terminal dropdowns are a button that opens a row of option buttons; elsewhere they are a native Select.
+type Ui = {
+  press: (t: { key: string }) => Promise<unknown>
+  select: (t: { key: string; value: string }) => Promise<unknown>
+  find: (q: { key: string }) => Promise<{ text: string; props: Record<string, unknown> } | undefined>
+}
+const pick = async (ui: Ui, surface: string, key: string, value: string) => {
+  if (surface !== 'terminal') return void (await ui.select({ key, value }))
+  await ui.press({ key })
+  await ui.press({ key: `${key}:${value}` })
+}
+// What a dropdown shows: the Select's value, or the terminal button's label.
+const shown = async (ui: Ui, surface: string, key: string) => {
+  const found = await ui.find({ key })
+  return surface === 'terminal' ? found?.text ?? '' : String(found?.props.value ?? '')
+}
+
 const spawn = (over: Partial<AgentSpawnInput> = {}): AgentSpawnInput => ({
   tool_use_id: 't1',
   prompt: 'do it',
@@ -49,24 +66,24 @@ describe('orchestrator', () => {
       await $.command.run({ command: 'orch', args: 'on models=sonnet,haiku max=2 ctx=200', origin: { kind: 'composer' }, presentation: {} as never })
       const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 80, scroll: {} as never, view: {} as never }
       const ui = await $.ui.mount({ plugin: 'orchestrator', surface, component: 'AbovePrompt', props })
-      expect((await ui.find({ key: 'orch' }))?.props.value).toBe('on')
+      expect(await shown(ui, surface, 'orch')).toMatch(/\bon\b/)
       expect(await ui.find({ key: 'max' })).toBeUndefined()
-      await ui.select({ key: 'orch', value: 'settings' })
-      expect((await ui.find({ key: 'orch' }))?.props.value).toBe('on')
+      await pick(ui, surface, 'orch', 'settings')
+      expect(await shown(ui, surface, 'orch')).toMatch(/\bon\b/)
       await ui.press({ key: 'model-opus' })
       await ui.press({ key: 'model-haiku' })
-      await ui.select({ key: 'max', value: 'custom' })
+      await pick(ui, surface, 'max', 'custom')
       await ui.input({ key: 'max-custom', text: '7' })
-      await ui.select({ key: 'ctx', value: 'custom' })
+      await pick(ui, surface, 'ctx', 'custom')
       await ui.input({ key: 'ctx-custom', text: '300k' })
       expect((await ui.find({ key: 'model-opus' }))?.text).toContain('☑ Opus')
       expect((await ui.find({ key: 'model-haiku' }))?.text).toContain('☐ Haiku')
-      expect((await ui.find({ key: 'max' }))?.props.value).toBe('7')
-      expect((await ui.find({ key: 'ctx' }))?.props.value).toBe('300')
-      await ui.select({ key: 'orch', value: 'off' })
-      expect((await ui.find({ key: 'orch' }))?.props.value).toBe('off')
-      await ui.select({ key: 'orch', value: 'on' })
-      await ui.select({ key: 'orch', value: 'settings' })
+      expect(await shown(ui, surface, 'max')).toMatch(/^7/)
+      expect(await shown(ui, surface, 'ctx')).toMatch(/^300/)
+      await pick(ui, surface, 'orch', 'off')
+      expect(await shown(ui, surface, 'orch')).toMatch(/\boff\b/)
+      await pick(ui, surface, 'orch', 'on')
+      await pick(ui, surface, 'orch', 'settings')
       expect(await ui.find({ key: 'ctx' })).toBeUndefined()
       await ui.unmount()
     }

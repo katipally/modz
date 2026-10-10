@@ -4,6 +4,6 @@ export type Choices = { models: string[]; efforts: string[] }
 
 declare module 'claude-code' {
   interface PluginState {
-    'model-info': { info: Info | null; choices: Choices; isConfirmed: boolean }
+    'model-info': { info: Info | null; choices: Choices; isConfirmed: boolean; openMenu: string | null }
   }
 }

@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderChildren, RenderElement, RenderNode, Timer } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderChildren, RenderElement, RenderNode, SelectOption, Timer } from 'claude-code'
 
 import type { Config, Field, Model } from '../types'
 
@@ -16,6 +16,7 @@ const config = atom(CONFIG_REF, FALLBACK)
 const spawned = atom({ plugin: 'orchestrator', key: 'spawned' } as const, 0)
 const running = atom({ plugin: 'orchestrator', key: 'running' } as const, [])
 const spin = atom({ plugin: 'orchestrator', key: 'spin' } as const, 0)
+const openMenu = atom({ plugin: 'orchestrator', key: 'openMenu' } as const, null)
 
 // The spinner turns only while a subagent this session spawned is still running.
 const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
@@ -175,7 +176,7 @@ export const register: Register = on => {
     const { Box, Button, Input, Select, Text } = elements
     const edit = await read($, editing)
     const open = await read($, isOpen)
-    const [busy, turn] = await Promise.all([read($, running), read($, spin)])
+    const [busy, turn, menu] = await Promise.all([read($, running), read($, spin), read($, openMenu)])
     const set = (fn: (c: Config) => Config) => update($, config, fn)
     const toggle = (m: Model) =>
       set(c => {
@@ -190,6 +191,25 @@ export const register: Register = on => {
         {controls}
       </Box>
     )
+
+    // In the terminal a Select answers only the keyboard, so there a dropdown is a button that opens a row of
+    // option buttons a click can pick from; every other surface keeps its native Select.
+    const dropdown = (key: string, value: string | undefined, options: readonly SelectOption[], onSelect: (v: string) => unknown) => {
+      if (e.surface !== 'terminal') return <Select key={key} value={value} options={options} onSelect={onSelect} />
+      const isShown = menu === key
+      const labelOf = (v: string | undefined) => options.find(o => o.value === v)?.label ?? v ?? '…'
+      return (
+        <Box flexDirection="row" columnGap={1}>
+          <Button key={key} plain label={`${labelOf(value)} ${isShown ? '▴' : '▾'}`} onPress={() => update($, openMenu, m => (m === key ? null : key))} />
+          {isShown && options.filter(o => o.value !== value).map(o => (
+            <Button key={`${key}:${o.value}`} plain dimColor label={o.label ?? o.value} onPress={async () => {
+              await update($, openMenu, () => null)
+              await onSelect(o.value)
+            }} />
+          ))}
+        </Box>
+      )
+    }
 
     const numberPicker = (key: Field, value: number, presets: number[], label: (n: number) => string, apply: (n: number) => Config) =>
       edit === key ? (
@@ -206,27 +226,27 @@ export const register: Register = on => {
           }}
         />
       ) : (
-        <Select
-          key={key}
-          value={String(value)}
-          options={[...withValue(presets, value).map(n => ({ value: String(n), label: label(n) })), { value: CUSTOM, label: 'Custom…' }]}
-          onSelect={v => (v === CUSTOM ? update($, editing, () => key) : set(() => apply(Number(v))))}
-        />
+        dropdown(
+          key,
+          String(value),
+          [...withValue(presets, value).map(n => ({ value: String(n), label: label(n) })), { value: CUSTOM, label: 'Custom…' }],
+          v => (v === CUSTOM ? update($, editing, () => key) : set(() => apply(Number(v)))),
+        )
       )
 
     return pack(Box, below, (
       <Box key="orchestrator" flexDirection="column">
         <Box flexDirection="row" flexWrap="wrap" columnGap={3}>
-          <Select
-            key="orch"
-            value={c.isOn ? 'on' : 'off'}
-            options={[
+          {dropdown(
+            'orch',
+            c.isOn ? 'on' : 'off',
+            [
               { value: 'on', label: 'Orchestrator on' },
               { value: 'off', label: 'Orchestrator off' },
               { value: SETTINGS, label: open ? 'Hide settings' : 'Settings…' },
-            ]}
-            onSelect={v => (v === SETTINGS ? update($, isOpen, o => !o) : set(c => ({ ...c, isOn: v === 'on' })))}
-          />
+            ],
+            v => (v === SETTINGS ? update($, isOpen, o => !o) : set(c => ({ ...c, isOn: v === 'on' }))),
+          )}
           {busy.length > 0 && <Text color="planMode">{SPINNER[turn % SPINNER.length]} {busy.length} running</Text>}
           {open && (
             <Button key="save" plain dimColor label="Save as default" onPress={async () => {
