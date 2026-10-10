@@ -23,14 +23,21 @@ Clawd, Claude Code's mascot, animated at the left of the mod band above the prom
 
 ## Use
 
-| Mood | When | What it does |
-| --- | --- | --- |
-| idle | between turns | blinks, glances left and right, waves now and then |
-| working | while your turn runs | eyes focused, walks in place, `···` beside it |
-| happy | a turn finished | cheers with arms up and squinting eyes, crouches and springs, `✦` sparkles |
-| oops | a turn was stopped or errored | eyes shut, shakes his head |
-| asleep | 2 minutes with nothing happening | eyes shut, legs folded, `zZz` |
+Clawd acts out what the agent is doing:
+
+| What he does | When |
+| --- | --- |
+| types on a laptop while a line of text fills the screen | Bash runs |
+| swings a hammer, sparks fly | Edit, Write or NotebookEdit runs |
+| scans with a magnifying glass | Read, Grep, Glob, WebFetch or WebSearch runs |
+| looks ahead, steps in place, thought bubbles rise | thinking, no tool running |
+| jumps with arms up, gold crown, confetti | a turn finished |
+| eyes shut, sweat drop, shakes his head | a turn was stopped or errored |
+| nightcap, sits down, `zZz` | 2 minutes with nothing happening |
+| blinks, glances around, waves | idle |
+
+**Interaction:** press `♥` next to him to pet him: he jumps and a heart pops up. On desktop he also lifts when the pointer is over him and squishes when pressed.
 
 Styles: `/buddy skin classic | ink | mint | sky | berry | gold` (classic is Clawd's own color; the choice is remembered).
 
-Only the main agent's turns move it; subagents finishing do not.
+Only the main agent's turns and tools move him; subagents do not.
