@@ -2,9 +2,15 @@
 
 Mods for [Claude Code](https://claude.com/claude-code): small plugins that add UI and behavior to the CLI and the desktop Code tab.
 
-## Install a mod
+## Install
 
-In any Claude Code session:
+Everything at once:
+
+```
+/plugin install modz --marketplace katipally/modz
+```
+
+Or one mod at a time, in any Claude Code session:
 
 ```
 /plugin install <mod> --marketplace katipally/modz
@@ -16,6 +22,7 @@ Answer `y` to add the marketplace, then pick a scope (user scope loads it in eve
 
 | Mod | Category | What it does |
 | --- | --- | --- |
+| [modz](mods/bundle/modz) | bundle | All the mods below in one install |
 | [orchestrator](mods/agents/orchestrator) | agents | Orchestrator menu: models, max agents, context limit for the main agent only |
 | [usage-limits](mods/ui/usage-limits) | ui | Context bar plus 5h and 7d limits with time left until reset |
 | [cache-timer](mods/ui/cache-timer) | ui | Cache hit % and time until the cache goes cold |
@@ -45,6 +52,7 @@ A new mod that draws above the prompt copies the `pack` helper from any of these
 modz/
 ├─ .claude-plugin/marketplace.json   every mod listed here
 ├─ mods/
+│  ├─ bundle/     one install for a set of mods
 │  ├─ agents/     orchestration, subagent control
 │  ├─ ui/         panes, bands, status lines, toasts
 │  ├─ guards/     blocking or rewriting risky tool calls

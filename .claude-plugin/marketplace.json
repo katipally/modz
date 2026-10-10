@@ -8,6 +8,12 @@
   },
   "plugins": [
     {
+      "name": "modz",
+      "source": "./mods/bundle/modz",
+      "description": "Every modz mod in one install",
+      "category": "bundle"
+    },
+    {
       "name": "orchestrator",
       "source": "./mods/agents/orchestrator",
       "description": "Orchestrator menu above the prompt: models, max agents and context limit for the main agent only",

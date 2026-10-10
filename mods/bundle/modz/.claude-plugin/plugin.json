@@ -1,0 +1,9 @@
+{
+  "name": "modz",
+  "version": "0.1.0",
+  "description": "Every modz mod in one install: orchestrator, usage-limits, cache-timer, model-info and buddy",
+  "author": {
+    "name": "katipally"
+  },
+  "dependencies": ["orchestrator", "usage-limits", "cache-timer", "model-info", "buddy"]
+}
