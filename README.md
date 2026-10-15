@@ -46,7 +46,7 @@ claude plugin update buddy@modz
 | [usage-limits](mods/ui/usage-limits) | ui | Context bar plus 5h and 7d limits with time left until reset |
 | [cache-timer](mods/ui/cache-timer) | ui | Cache hit % and time until the cache goes cold |
 | [model-info](mods/ui/model-info) | ui | Model and thinking effort pickers |
-| [buddy](mods/ui/buddy) | ui | Clawd, Claude Code's mascot, animated: blinks, walks while working, cheers when done |
+| [buddy](mods/ui/buddy) | ui | Clawd, Claude Code's mascot, animated: blinks, walks while working, cheers when done, and reacts to prompts, errors, tests, limits, subagents and more |
 
 ## How mods share the screen
 
@@ -61,7 +61,7 @@ Mods that draw above the prompt place a tile in one shared band (`modz-band`): a
 
 Each tile has its own Claude theme color (usage `claude`, cache `suggestion`, model `merged`, orchestrator `planMode`). Labels and details are dim, values bold. Usage values turn yellow at 60% and red at 85%; the cache time is red once cold.
 
-Small animations play only while something happens: the bot (real pixels, five moods, six skins) acts out fifteen kinds of work with their own props (typing, tests, git, installs, builds, editing, reading, browsing, helpers, checklists, questions, MCP, skills, plan mode and thinking), plays one of 14 click animations from a shuffled deck, jumps when a turn ends, shakes its head when stopped, sweats near a limit, checks a clock on a slow tool, shivers when the cache is cold and dozes off when idle; the context bar grows to its new value, the cache twinkles after a hit, a check pops in after a model or effort switch, and the orchestrator spins while its subagents run.
+Small animations play only while something happens: the bot (real pixels, five moods, six skins) acts out fifteen kinds of work with their own props (typing, tests, git, installs, builds, editing, reading, browsing, helpers, checklists, questions, MCP, skills, plan mode and thinking), plays one of 14 click animations from a shuffled deck, jumps when a turn ends, shakes its head when stopped, sweats near a limit, checks a clock on a slow tool, shivers when the cache is cold and dozes off when idle, and the bot also reacts to waiting on you, errors, test results, compaction, limits, subagents, long runs, big reads, going offline, git commits, a fresh session and a long task finishing (fireworks); the context bar grows to its new value, the cache twinkles after a hit, a check pops in after a model or effort switch, and the orchestrator spins while its subagents run.
 
 A new mod that draws above the prompt copies the `pack` helper from any of these mods and adds itself to `SLOTS` in all of them.
 

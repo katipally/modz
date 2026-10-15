@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Proposed buddy animations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet" />
+<style>
+body{margin:0}
+a{color:#d77757}a:hover{color:#f0a080}
+</style>
+</helmet>
+<div style="width: 1400px; height: 5200px; box-sizing: border-box; padding: 48px; position: relative; overflow: hidden; background: #0e0f12; color: #c9ccd3; font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;">
+<div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #d77757; font-weight: 700; margin: 0 0 10px 0;">Buddy mod / design board</div>
+<div style="font-size: 40px; line-height: 1.1; font-weight: 700; color: #f1f2f4; margin: 0 0 16px 0;">Proposed buddy animations</div>
+<div style="max-width: 900px; font-size: 16px; line-height: 1.55; color: #b4b8c0; margin: 0 0 8px 0;">These are proposals to choose from. None of them exist in the mod yet. Each card is a new state for Clawd with the Claude Code event it would hang on, a live mockup, and every frame laid out underneath.</div>
+<div style="max-width: 900px; font-size: 16px; line-height: 1.55; color: #b4b8c0; margin: 0 0 8px 0;">Mockups use the real HEAD, BODY and FEET strings from clawd-moves.ts inside the same 3 row terminal box, with props drawn beside him like the work modes. New sprite parts (x eyes, pinched and squashed bodies) are marked on their cards. Frame counts and timings are suggestions.</div>
+<div style="max-width: 900px; font-size: 16px; line-height: 1.55; color: #b4b8c0; margin: 0 0 32px 0;">Tell me which ones to build. Use Pause to inspect a card, and the speed prop to slow everything down.</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;">
+<sc-for list="{{cards}}" as="card" hint-placeholder-count="3">
+<div style="background: #15171c; border: 1px solid #262a31; border-radius: 12px; padding: 20px; min-width: 0; box-sizing: border-box;">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px 0;">
+<div style="font-size: 19px; font-weight: 700; color: #f1f2f4; line-height: 1.2;">{{card.name}}</div>
+<div style="flex: none; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #f5c542; background: #2b2511; border: 1px solid #5a4a17; border-radius: 999px; padding: 3px 9px;">Proposed</div>
+</div>
+<div style="font-size: 13px; line-height: 1.5; color: #d4d7dd; margin: 0 0 6px 0;"><span style="color: #8b909a; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em;">Trigger </span>{{card.trigger}}</div>
+<div style="font-size: 13px; line-height: 1.5; color: #d4d7dd; margin: 0 0 10px 0;"><span style="color: #8b909a; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em;">Why </span>{{card.why}}</div>
+<div style="font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: #8b909a; margin: 0 0 12px 0;">{{card.meta}}</div>
+<div style="display: flex; align-items: center; gap: 12px; background: #0a0b0d; border: 1px solid #23262d; border-radius: 8px; padding: 14px 16px; overflow: hidden;">
+<pre style="margin: 0; flex: 1; min-width: 0; font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 20px; line-height: 1.1; white-space: pre; overflow: hidden;"><sc-for list="{{card.live}}" as="row"><div style="white-space: pre;"><sc-for list="{{row.spans}}" as="sp"><span style="{{sp.style}}">{{sp.text}}</span></sc-for></div></sc-for></pre>
+<button onClick="{{card.toggle}}" style="flex: none; font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 500; color: #e6e8ec; background: #1d2026; border: 1px solid #343944; border-radius: 6px; padding: 6px 12px; cursor: pointer;">{{card.playLabel}}</button>
+</div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8b909a; margin: 14px 0 8px 0;">All frames</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px;">
+<sc-for list="{{card.tiles}}" as="tile">
+<div style="{{tile.style}}">
+<pre style="margin: 0; font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 8px; line-height: 1.1; white-space: pre;"><sc-for list="{{tile.rows}}" as="row"><div style="white-space: pre;"><sc-for list="{{row.spans}}" as="sp"><span style="{{sp.style}}">{{sp.text}}</span></sc-for></div></sc-for></pre>
+<div style="font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 9px; color: #8b909a; margin-top: 2px;">{{tile.idx}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"speed":{"editor":"range","default":1,"min":0.25,"max":3,"step":0.25},"$preview":{"width":1400,"height":5200}}'>
+const CL = '#d77757', AM = '#f5c542', GN = '#5fd38d', RD = '#ff6b6b', BL = '#7aa2f7', CY = '#9ad0ff', PK = '#e07ab0';
+const GY = '#b8bcc4', OR = '#f0883e', PU = '#c792ea', MI = '#7fd1ae', DM = '#7d7d85', BR = '#c8935a', CD = '#9aa0aa';
+
+const H = { open: ' ▐▛███▜▌ ', shut: ' ▐█████▌ ', down: ' ▐▙███▟▌ ', left: ' ▐▜███▜▌ ', right: ' ▐▛███▛▌ ' };
+const B = { rest: '▝▜█████▛▘', both: '▗▟█████▙▖', left: '▗▟█████▛▘', right: '▝▜█████▙▖' };
+const Fe = { stand: '  ▘▘ ▝▝  ', sit: '  ▀▀ ▀▀  ', none: '         ', tapLeft: '  ▘▘     ', tapRight: '     ▝▝  ' };
+
+const STAND = [H.open, B.rest, Fe.stand];
+const CHEER = [H.open, B.both, Fe.stand];
+const AIR = [H.open, B.both, Fe.none];
+const SHUT = [H.shut, B.rest, Fe.stand];
+const PINCH = ['  ▐▛█▜▌  ', ' ▝▜███▛▘ ', '  ▘▘ ▝▝  '];
+const PINCH2 = ['   ▐█▌   ', '  ▝▜█▛▘  ', '   ▘ ▝   '];
+const SQUASH = ['         ', '▐▛█████▜▌', ' ▀▀▀▀▀▀▀ '];
+const XEYES = [[0, 3, 'x', RD], [0, 5, 'x', RD]];
+
+const BLANK = '         ';
+const shiftRow = (row, x) => (x >= 0 ? (' '.repeat(Math.min(x, 9)) + row).slice(0, 9) : (row + ' '.repeat(Math.min(-x, 9))).slice(Math.min(-x, 9)));
+const place = (fr) => [0, 1, 2].map((r) => shiftRow(fr.sp[r - (fr.off || 0)] || BLANK, fr.x || 0));
+
+const F = (sp, o) => Object.assign({ sp: sp }, o || {});
+const t = (s, c) => [s, c];
+const crouch = (sp, o) => F(sp, Object.assign({ off: 1, dust: true }, o || {}));
+const cellsOf = (s, c) => Array.from(s).map((ch) => ({ ch: ch, c: c }));
+const slot = (item, def, w) => {
+  let out = [];
+  if (typeof item === 'string') out = cellsOf(item, def);
+  else if (item) item.forEach((p) => { out = out.concat(cellsOf(p[0], p[1] || def)); });
+  while (out.length < w) out.push({ ch: ' ', c: def });
+  return out.slice(0, w);
+};
+
+const rowCells = (fr, r, card) => {
+  const cs = cellsOf(place(fr)[r], CL);
+  const off = fr.off || 0, x = fr.x || 0;
+  if (r === 2 && fr.dust && off > 0) { cs[0] = { ch: '·', c: DM }; cs[8] = { ch: '·', c: DM }; }
+  if (r === 2 && fr.shadow) [3, 4, 5].forEach((i) => { cs[i] = { ch: '▁', c: DM }; });
+  (fr.marks || []).forEach((m) => {
+    const cc = m[1] + x;
+    if (m[0] + off === r && cc >= 0 && cc < 9) cs[cc] = { ch: m[2], c: m[3] };
+  });
+  return slot((fr.L || [])[r], card.pc, card.lw).concat(cs, slot((fr.R || [])[r], card.pc, card.rw));
+};
+
+const spansOf = (cs) => {
+  const out = [];
+  let prev = CL;
+  cs.forEach((k) => {
+    const c = k.ch === ' ' ? prev : k.c;
+    const last = out[out.length - 1];
+    if (last && last.color === c) last.text += k.ch;
+    else out.push({ text: k.ch, color: c, style: 'color: ' + c + ';' });
+    prev = c;
+  });
+  return out;
+};
+
+const rowsOf = (fr, card) => [0, 1, 2].map((r) => ({ spans: spansOf(rowCells(fr, r, card)) }));
+
+// 1. Waiting on permission
+const permQ0 = [[t('▗', CL), t('   ?', PK)], [t('▐', CL)], ''];
+const permQ1 = [[t('▗', CL)], [t('▐', CL), t('  ?', PK)], ''];
+const permF = (feet, head, R) => F([head, B.left, feet], { R: R });
+const PERM = [
+  permF(Fe.tapLeft, H.open, permQ1), permF(Fe.tapLeft, H.open, permQ0), permF(Fe.tapRight, H.open, permQ0),
+  permF(Fe.tapRight, H.open, permQ1), permF(Fe.tapLeft, H.right, permQ1), permF(Fe.tapRight, H.right, permQ0),
+];
+
+// 2. Tool error
+const DEAD = [H.open, B.rest, Fe.stand];
+const errF = (o, R) => F(DEAD, Object.assign({ marks: XEYES, R: R }, o));
+const ERR = [
+  F(STAND),
+  errF({ off: 1, dust: true }, ['', '', [t(' ∘', GY)]]),
+  errF({ x: 1 }, ['', [t(' ○', GY)], '']),
+  errF({ x: -1 }, [[t(' ◯', GY)], [t(' ○', GY)], '']),
+  errF({ x: 1 }, [[t('  ◯', GY)], [t(' !', RD)], '']),
+  errF({}, [[t('  ◌', GY)], [t(' !', RD)], '']),
+  errF({}, ['', [t(' !', RD)], '']),
+  errF({}, ['', [t(' !', RD)], '']),
+];
+
+// 3. Test verdict
+const sign = (m, c) => [[t(' ┌─┐', GY)], [t(' │', GY), t(m, c), t('│', GY)], [t(' └┬┘', GY)]];
+const TESTS = [
+  crouch(STAND), F(AIR, { R: sign('✔', GN) }), F(CHEER, { R: sign('✔', GN) }), F(CHEER, { R: sign('✔', GN) }), F(CHEER, { R: sign('✔', GN) }),
+  F([H.down, B.rest, Fe.stand], { R: sign('✘', RD) }), F([H.down, B.rest, Fe.stand], { x: -1, R: sign('✘', RD) }),
+  F([H.down, B.rest, Fe.stand], { x: 1, R: sign('✘', RD) }), F([H.down, B.rest, Fe.stand], { x: -1, R: sign('✘', RD) }),
+  F([H.shut, B.rest, Fe.stand], { R: sign('✘', RD) }),
+];
+
+// 4. Compacting
+const squeeze = (c, sp) => F(sp, { L: ['', [t(' '.repeat(c) + '▶', CY)], ''], R: ['', [t(' '.repeat(3 - c) + '◀', CY)], ''] });
+const COMPACT = [
+  squeeze(0, STAND), squeeze(1, STAND), squeeze(2, STAND), squeeze(3, PINCH), squeeze(3, PINCH2),
+  squeeze(2, SQUASH), squeeze(1, PINCH), squeeze(0, STAND), squeeze(0, STAND),
+];
+
+// 5. Rate limited
+const SAND_TOP = ['▀▀▀', '▀▀▀', '▀▀ ', ' ▀▀', ' ▀ ', ' ▀ ', '  ·', '   '];
+const SAND_LOW = ['▁▁▁', '▁▁▁', '▂▂▂', '▂▂▂', '▃▃▃', '▃▃▃', '▄▄▄', '▄▄▄'];
+const LIMITED = SAND_TOP.map((top, i) =>
+  F([i % 2 ? H.shut : H.down, B.rest, Fe.sit], { R: [[t(' ' + top, AM)], [t(i < 7 ? ' ┊' : '  ', AM)], [t(' ' + SAND_LOW[i], AM)]] }));
+
+// 6. Subagents running
+const clonePair = (i, k, pop) => (i < k ? t('▟▙', PK) : i === k && pop ? t(' ✦', AM) : t('  ', PK));
+const clones = (k, pop) => F([H.open, pop ? B.both : B.rest, Fe.stand], {
+  R: [k > 0 ? [t(' ×' + k, PK)] : '', [t(' ', PK), clonePair(2, k, pop), t(' ', PK), clonePair(1, k, pop)], [t(' ', PK), clonePair(0, k, pop)]],
+});
+const AGENTS = [clones(0, false), clones(0, true), clones(1, false), clones(1, true), clones(2, false), clones(2, true), clones(3, false), clones(3, false)];
+
+// 7. Long tool run
+const cup = (n, steam, head) => F([head, B.right, Fe.stand], {
+  R: [[t(' '.repeat(n + 1) + steam, GY)], [t(' '.repeat(n) + '╭─╮)', BR)], [t(' '.repeat(n) + '╰─╯', BR)]],
+});
+const COFFEE = [
+  cup(2, '∿', H.open), cup(2, '~', H.open), cup(1, '∿', H.open), cup(0, '~', H.shut),
+  cup(0, '∿', H.shut), cup(1, '~', H.open), cup(2, '∿', H.open), cup(2, '~', H.shut),
+];
+
+// 8. Reading a big file
+const BARS = ['▬▬▬▬▬', '▬▬▬', '▬▬▬▬▬▬▬', '▬▬', '▬▬▬▬▬▬', '▬▬▬▬', '▬▬▬▬▬▬▬▬', '▬▬▬'];
+const scan = (f) => {
+  const off = Math.floor(f / 4), step = f % 4;
+  const bar = (i) => BARS[(off + i) % BARS.length];
+  const cur = bar(1);
+  const k = step < 3 ? Math.ceil((cur.length * (step + 1)) / 3) : cur.length;
+  return F([step === 3 ? H.left : H.right, B.rest, Fe.stand], {
+    R: [[t('  ' + bar(0), DM)], [t('▸ ', MI), t(cur.slice(0, k), MI), t(cur.slice(k), DM)], [t('  ' + bar(2), DM)]],
+  });
+};
+const BIGFILE = Array.from({ length: 12 }, (_, f) => scan(f));
+
+// 9. Offline
+const RAIN = ['  ╷ ╷  ', ' ╷ ╷ ╷ ', '  ╵ ╵  ', ' ╵ ╵ ╵ '];
+const offline = (f) => F([f % 4 === 3 ? H.shut : H.right, B.rest, Fe.stand], {
+  R: [
+    [t('  ▗██▖', CD)],
+    f === 6 ? [t(' ▟█', CD), t('↯', AM), t('█▙', CD)] : [t(' ▟███▙', CD)],
+    [t(RAIN[f % 4], BL)],
+  ],
+});
+const OFFLINE = Array.from({ length: 8 }, (_, f) => offline(f));
+
+// 10. Git commit
+const flagR = (pole, flag, hash) => [
+  flag ? [t(' ⚑', OR)] : '',
+  pole >= 2 ? [t(' ┃', OR), t(hash ? ' ' + hash : '', GY)] : '',
+  pole >= 1 ? [t(' ┃', OR)] : '',
+];
+const GIT = [
+  F(STAND), crouch(SHUT, { R: flagR(1, false, '') }), crouch(STAND, { R: flagR(2, false, '') }), F(STAND, { R: flagR(2, true, '') }),
+  F(CHEER, { R: flagR(2, true, '7f') }), F(AIR, { R: flagR(2, true, '7f3a') }), crouch(STAND, { R: flagR(2, true, '7f3a9c') }),
+  F(CHEER, { R: flagR(2, true, '7f3a9c') }), F(CHEER, { R: flagR(2, true, '7f3a9c') }), F(STAND, { R: flagR(2, true, '7f3a9c') }),
+];
+
+// 11. Session start greeting
+const GREET = [];
+[-8, -6, -4, -2, 0].forEach((x) => {
+  GREET.push(F([H.right, B.rest, Fe.tapLeft], { x: x }), F([H.right, B.rest, Fe.tapRight], { x: x }));
+});
+[B.right, B.left, B.right, B.left, B.right, B.left].forEach((b, i) => {
+  GREET.push(F([H.open, b, Fe.stand], { R: [[t(i % 2 ? ' hi!' : ' hi', AM)], '', ''] }));
+});
+GREET.push(F(STAND), F(STAND));
+
+// 12. Long task finished
+const burstR = (s, c) => [['       ', '   ✦   ', '       '], ['   ·   ', ' · ✦ · ', '   ·   '], ['·  ✧  ·', '✧  ✦  ✧', '·  ✧  ·'], ['·     ·', '       ', '·     ·']][s].map((r) => [t(' ' + r, c)]);
+const burstL = (s, c) => [['     ', '  ✦  ', '     '], ['  ·  ', ' ·✦· ', '  ·  '], ['·   ·', '  ✧  ', '·   ·'], ['     ', '·   ·', '     ']][s].map((r) => [t(r, c)]);
+const rocketR = (row) => [0, 1, 2].map((r) => (r === row ? [t('   ╷', AM)] : ''));
+const rocketL = (row) => [0, 1, 2].map((r) => (r === row ? [t('  ╷', PK)] : ''));
+const fw = (sp, R, L, o) => F(sp, Object.assign({ R: R, L: L }, o || {}));
+const FIREWORKS = [
+  fw(STAND, rocketR(2), null), fw(STAND, rocketR(1), rocketL(2), { off: 1, dust: true }), fw(AIR, rocketR(0), rocketL(1)),
+  fw(CHEER, burstR(0, AM), rocketL(0)), fw(AIR, burstR(1, AM), burstL(0, PK)), fw(CHEER, burstR(2, AM), burstL(1, PK)),
+  fw(CHEER, burstR(3, AM), burstL(2, PK)), fw(AIR, null, burstL(3, PK)), fw(CHEER, burstR(0, PU), burstL(0, MI)),
+  fw(CHEER, burstR(1, PU), burstL(1, MI)), fw(CHEER, burstR(2, PU), burstL(2, MI)), fw(STAND, burstR(3, PU), burstL(3, MI)),
+];
+
+const SPECS = [
+  { id: 'perm', name: 'Waiting on permission', pc: PK, lw: 0, rw: 8, ms: 180, frames: PERM,
+    trigger: 'Notification hook for a permission prompt. Plays until the next tool call or prompt submit.',
+    why: 'He needs you, so he raises an arm and a ? bounces. Reads from across the room, unlike the small asking glyph.' },
+  { id: 'error', name: 'Tool error', pc: GY, lw: 0, rw: 8, ms: 130, frames: ERR,
+    trigger: 'PostToolUse where the tool result is an error, or a Bash command exits non-zero.',
+    why: 'A short x eyes flop with a smoke puff, then a red ! that holds. New part: x eyes drawn over the head cells.' },
+  { id: 'tests', name: 'Test verdict', pc: GY, lw: 0, rw: 8, ms: 140, frames: TESTS,
+    trigger: 'Bash test command (vitest, jest, pytest, cargo test) finishes. Exit 0 holds up a check, non-zero a cross.',
+    why: 'Today testing only shows a progress bar. This gives the result a face: a hop for pass, a droop for fail. Loop shows pass then fail.' },
+  { id: 'compact', name: 'Compacting context', pc: CY, lw: 4, rw: 4, ms: 120, frames: COMPACT,
+    trigger: 'PreCompact hook, manual /compact or automatic. Ends when the next prompt arrives.',
+    why: 'Context is being squeezed, so he is squeezed: arrows close in, he pinches tall, then springs wide. New parts: PINCH and SQUASH bodies.' },
+  { id: 'limit', name: 'Rate limited', pc: AM, lw: 0, rw: 5, ms: 300, frames: LIMITED,
+    trigger: 'Rate limit or usage limit rejection from the API, until the reset time passes.',
+    why: 'Nothing is broken, he is just waiting. Sits down, slow breathing, sand running out. Calm, unlike the hot strain sweat.' },
+  { id: 'agents', name: 'Subagents running', pc: PK, lw: 0, rw: 9, ms: 200, frames: AGENTS,
+    trigger: 'PreToolUse of the Task tool adds a clone, SubagentStop removes one. Count shows how many run.',
+    why: 'Delegating currently shows a fixed pair of blocks. Real clones that pop in make the number of parallel agents readable.' },
+  { id: 'coffee', name: 'Long tool run', pc: GY, lw: 0, rw: 7, ms: 250, frames: COFFEE,
+    trigger: 'PreToolUse with no PostToolUse after about 20 seconds (long build, install or test run).',
+    why: 'Fills the dead time with something calm instead of the cold clock strain. Steam rises, he sips, he blinks.' },
+  { id: 'bigfile', name: 'Reading a big file', pc: DM, lw: 0, rw: 10, ms: 120, frames: BIGFILE,
+    trigger: 'PostToolUse of Read on a file past about 800 lines, or repeated Read calls with offset and limit.',
+    why: 'Eyes sweep a line, snap back, and the page scrolls. Shows that the read is long, not just that a read happened.' },
+  { id: 'offline', name: 'Offline', pc: CD, lw: 0, rw: 8, ms: 160, frames: OFFLINE,
+    trigger: 'Network or connection error on an API request that is being retried. Clears on the next success.',
+    why: 'A private rain cloud with a lightning flash. Tells you it is the connection, not the model or the tool.' },
+  { id: 'git', name: 'Plants a flag', pc: OR, lw: 0, rw: 10, ms: 130, frames: GIT,
+    trigger: 'PostToolUse of Bash running git commit or git push with exit 0. Short hash read from the output.',
+    why: 'Commit and push get a payoff: he plants a flag and the hash types in beside it. Replaces the generic dot chain for successes.' },
+  { id: 'hello', name: 'Session start greeting', pc: AM, lw: 0, rw: 6, ms: 100, frames: GREET,
+    trigger: 'SessionStart hook (startup or resume). Plays once, then he settles into idle.',
+    why: 'Walks in from the left edge using the real walk frames, waves, says hi. Makes opening Claude Code feel like arriving.' },
+  { id: 'fireworks', name: 'Long task finished', pc: AM, lw: 5, rw: 9, ms: 110, frames: FIREWORKS,
+    trigger: 'Stop hook after a turn that ran longer than about 5 minutes.',
+    why: 'Two volleys of fireworks and a cheer for work that took real time. Quick turns keep the plain cheer.' },
+];
+
+const CARDS = SPECS.map((c) => Object.assign({}, c, {
+  rows: c.frames.map((fr) => rowsOf(fr, c)),
+}));
+
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setInterval(() => {
+      const s = this.state || {};
+      const paused = s.paused || {};
+      const sp = Number((this.props || {}).speed) || 1;
+      const acc = Object.assign({}, s.acc || {});
+      CARDS.forEach((c) => { if (!paused[c.id]) acc[c.id] = (acc[c.id] || 0) + 50 * sp; });
+      this.setState({ acc: acc });
+    }, 50);
+  }
+  componentWillUnmount() { clearInterval(this.t); }
+  renderVals() {
+    const s = this.state || {};
+    const acc = s.acc || {};
+    const paused = s.paused || {};
+    const cards = CARDS.map((c) => {
+      const cur = Math.floor((acc[c.id] || 0) / c.ms) % c.rows.length;
+      return {
+        name: c.name,
+        trigger: c.trigger,
+        why: c.why,
+        meta: c.rows.length + ' frames, ' + c.ms + ' ms per frame, ' + c.rows.length * c.ms + ' ms loop',
+        live: c.rows[cur],
+        playLabel: paused[c.id] ? 'Play' : 'Pause',
+        toggle: () => {
+          const p = Object.assign({}, (this.state && this.state.paused) || {});
+          p[c.id] = !p[c.id];
+          this.setState({ paused: p });
+        },
+        tiles: c.rows.map((rows, i) => ({
+          rows: rows,
+          idx: String(i + 1),
+          style: 'background: #0a0b0d; border: 1px solid ' + (i === cur ? '#d77757' : '#23262d') + '; border-radius: 4px; padding: 4px 5px; overflow: hidden;',
+        })),
+      };
+    });
+    return { cards: cards };
+  }
+}
+</script>
+</body>
+</html>

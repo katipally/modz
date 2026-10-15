@@ -1,0 +1,805 @@
+{
+  "aliases": {
+    "test": "laptop",
+    "git": "laptop",
+    "install": "laptop",
+    "build": "hammer",
+    "ask": "think",
+    "mcp": "web",
+    "skill": "notes",
+    "plan": "think"
+  },
+  "files": [
+    {
+      "name": "pixel-asleep-sheet",
+      "kind": "pixel-mood-sheet",
+      "file": "pixel-asleep-sheet.svg",
+      "frames": 3,
+      "msPerFrame": 900
+    },
+    {
+      "name": "pixel-asleep",
+      "kind": "pixel-mood",
+      "file": "pixel-asleep.svg",
+      "frames": 3,
+      "msPerFrame": 900
+    },
+    {
+      "name": "pixel-cue-agents-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-agents-sheet.svg",
+      "frames": 4,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-cue-agents",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-agents.svg",
+      "frames": 4,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-cue-bigfile-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-bigfile-sheet.svg",
+      "frames": 12,
+      "msPerFrame": 120
+    },
+    {
+      "name": "pixel-cue-bigfile",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-bigfile.svg",
+      "frames": 12,
+      "msPerFrame": 120
+    },
+    {
+      "name": "pixel-cue-coffee-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-coffee-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 250
+    },
+    {
+      "name": "pixel-cue-coffee",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-coffee.svg",
+      "frames": 8,
+      "msPerFrame": 250
+    },
+    {
+      "name": "pixel-cue-compact-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-compact-sheet.svg",
+      "frames": 9,
+      "msPerFrame": 120
+    },
+    {
+      "name": "pixel-cue-compact",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-compact.svg",
+      "frames": 9,
+      "msPerFrame": 120
+    },
+    {
+      "name": "pixel-cue-error-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-error-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 130
+    },
+    {
+      "name": "pixel-cue-error",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-error.svg",
+      "frames": 8,
+      "msPerFrame": 130
+    },
+    {
+      "name": "pixel-cue-fail-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-fail-sheet.svg",
+      "frames": 5,
+      "msPerFrame": 140
+    },
+    {
+      "name": "pixel-cue-fail",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-fail.svg",
+      "frames": 5,
+      "msPerFrame": 140
+    },
+    {
+      "name": "pixel-cue-fireworks-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-fireworks-sheet.svg",
+      "frames": 12,
+      "msPerFrame": 110
+    },
+    {
+      "name": "pixel-cue-fireworks",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-fireworks.svg",
+      "frames": 12,
+      "msPerFrame": 110
+    },
+    {
+      "name": "pixel-cue-flag-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-flag-sheet.svg",
+      "frames": 10,
+      "msPerFrame": 130
+    },
+    {
+      "name": "pixel-cue-flag",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-flag.svg",
+      "frames": 10,
+      "msPerFrame": 130
+    },
+    {
+      "name": "pixel-cue-hello-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-hello-sheet.svg",
+      "frames": 18,
+      "msPerFrame": 100
+    },
+    {
+      "name": "pixel-cue-hello",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-hello.svg",
+      "frames": 18,
+      "msPerFrame": 100
+    },
+    {
+      "name": "pixel-cue-limit-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-limit-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 300
+    },
+    {
+      "name": "pixel-cue-limit",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-limit.svg",
+      "frames": 8,
+      "msPerFrame": 300
+    },
+    {
+      "name": "pixel-cue-offline-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-offline-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 160
+    },
+    {
+      "name": "pixel-cue-offline",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-offline.svg",
+      "frames": 8,
+      "msPerFrame": 160
+    },
+    {
+      "name": "pixel-cue-pass-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-pass-sheet.svg",
+      "frames": 5,
+      "msPerFrame": 140
+    },
+    {
+      "name": "pixel-cue-pass",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-pass.svg",
+      "frames": 5,
+      "msPerFrame": 140
+    },
+    {
+      "name": "pixel-cue-perm-sheet",
+      "kind": "pixel-cue-sheet",
+      "file": "pixel-cue-perm-sheet.svg",
+      "frames": 6,
+      "msPerFrame": 180
+    },
+    {
+      "name": "pixel-cue-perm",
+      "kind": "pixel-cue",
+      "file": "pixel-cue-perm.svg",
+      "frames": 6,
+      "msPerFrame": 180
+    },
+    {
+      "name": "pixel-happy-sheet",
+      "kind": "pixel-mood-sheet",
+      "file": "pixel-happy-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 160
+    },
+    {
+      "name": "pixel-happy",
+      "kind": "pixel-mood",
+      "file": "pixel-happy.svg",
+      "frames": 8,
+      "msPerFrame": 160
+    },
+    {
+      "name": "pixel-idle-sheet",
+      "kind": "pixel-mood-sheet",
+      "file": "pixel-idle-sheet.svg",
+      "frames": 40,
+      "msPerFrame": 300
+    },
+    {
+      "name": "pixel-idle",
+      "kind": "pixel-mood",
+      "file": "pixel-idle.svg",
+      "frames": 40,
+      "msPerFrame": 300
+    },
+    {
+      "name": "pixel-loved-sheet",
+      "kind": "pixel-mood-sheet",
+      "file": "pixel-loved-sheet.svg",
+      "frames": 10,
+      "msPerFrame": 140
+    },
+    {
+      "name": "pixel-loved",
+      "kind": "pixel-mood",
+      "file": "pixel-loved.svg",
+      "frames": 10,
+      "msPerFrame": 140
+    },
+    {
+      "name": "pixel-oops-sheet",
+      "kind": "pixel-mood-sheet",
+      "file": "pixel-oops-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 90
+    },
+    {
+      "name": "pixel-oops",
+      "kind": "pixel-mood",
+      "file": "pixel-oops.svg",
+      "frames": 8,
+      "msPerFrame": 90
+    },
+    {
+      "name": "pixel-prop-agents-sheet",
+      "kind": "pixel-prop-sheet",
+      "file": "pixel-prop-agents-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-agents",
+      "kind": "pixel-prop",
+      "file": "pixel-prop-agents.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-hammer-sheet",
+      "kind": "pixel-prop-sheet",
+      "file": "pixel-prop-hammer-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-hammer",
+      "kind": "pixel-prop",
+      "file": "pixel-prop-hammer.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-laptop-sheet",
+      "kind": "pixel-prop-sheet",
+      "file": "pixel-prop-laptop-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-laptop",
+      "kind": "pixel-prop",
+      "file": "pixel-prop-laptop.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-magnify-sheet",
+      "kind": "pixel-prop-sheet",
+      "file": "pixel-prop-magnify-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-magnify",
+      "kind": "pixel-prop",
+      "file": "pixel-prop-magnify.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-notes-sheet",
+      "kind": "pixel-prop-sheet",
+      "file": "pixel-prop-notes-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-notes",
+      "kind": "pixel-prop",
+      "file": "pixel-prop-notes.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-think-sheet",
+      "kind": "pixel-prop-sheet",
+      "file": "pixel-prop-think-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-think",
+      "kind": "pixel-prop",
+      "file": "pixel-prop-think.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-web-sheet",
+      "kind": "pixel-prop-sheet",
+      "file": "pixel-prop-web-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-prop-web",
+      "kind": "pixel-prop",
+      "file": "pixel-prop-web.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-skins",
+      "kind": "pixel-skins",
+      "file": "pixel-skins.svg",
+      "frames": 6,
+      "msPerFrame": null
+    },
+    {
+      "name": "pixel-strain-cold-sheet",
+      "kind": "pixel-strain-sheet",
+      "file": "pixel-strain-cold-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-strain-cold",
+      "kind": "pixel-strain",
+      "file": "pixel-strain-cold.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-strain-hot-sheet",
+      "kind": "pixel-strain-sheet",
+      "file": "pixel-strain-hot-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-strain-hot",
+      "kind": "pixel-strain",
+      "file": "pixel-strain-hot.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-strain-slow-sheet",
+      "kind": "pixel-strain-sheet",
+      "file": "pixel-strain-slow-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-strain-slow",
+      "kind": "pixel-strain",
+      "file": "pixel-strain-slow.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-working-sheet",
+      "kind": "pixel-mood-sheet",
+      "file": "pixel-working-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "pixel-working",
+      "kind": "pixel-mood",
+      "file": "pixel-working.svg",
+      "frames": 8,
+      "msPerFrame": 200
+    },
+    {
+      "name": "term-click-boop-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-boop-sheet.svg",
+      "frames": 11,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-boop",
+      "kind": "term-click",
+      "file": "term-click-boop.svg",
+      "frames": 11,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-coin-hop-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-coin-hop-sheet.svg",
+      "frames": 12,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-coin-hop",
+      "kind": "term-click",
+      "file": "term-click-coin-hop.svg",
+      "frames": 12,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-drop-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-drop-sheet.svg",
+      "frames": 9,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-drop",
+      "kind": "term-click",
+      "file": "term-click-drop.svg",
+      "frames": 9,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-jump-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-jump-sheet.svg",
+      "frames": 13,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-jump",
+      "kind": "term-click",
+      "file": "term-click-jump.svg",
+      "frames": 13,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-look-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-look-sheet.svg",
+      "frames": 12,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-look",
+      "kind": "term-click",
+      "file": "term-click-look.svg",
+      "frames": 12,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-peek-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-peek-sheet.svg",
+      "frames": 27,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-peek",
+      "kind": "term-click",
+      "file": "term-click-peek.svg",
+      "frames": 27,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-peekaboo-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-peekaboo-sheet.svg",
+      "frames": 18,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-peekaboo",
+      "kind": "term-click",
+      "file": "term-click-peekaboo.svg",
+      "frames": 18,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-skip-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-skip-sheet.svg",
+      "frames": 13,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-skip",
+      "kind": "term-click",
+      "file": "term-click-skip.svg",
+      "frames": 13,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-sneeze-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-sneeze-sheet.svg",
+      "frames": 14,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-sneeze",
+      "kind": "term-click",
+      "file": "term-click-sneeze.svg",
+      "frames": 14,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-spin-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-spin-sheet.svg",
+      "frames": 17,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-spin",
+      "kind": "term-click",
+      "file": "term-click-spin.svg",
+      "frames": 17,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-tap-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-tap-sheet.svg",
+      "frames": 15,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-tap",
+      "kind": "term-click",
+      "file": "term-click-tap.svg",
+      "frames": 15,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-turn-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-turn-sheet.svg",
+      "frames": 15,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-turn",
+      "kind": "term-click",
+      "file": "term-click-turn.svg",
+      "frames": 15,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-waddle-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-waddle-sheet.svg",
+      "frames": 27,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-waddle",
+      "kind": "term-click",
+      "file": "term-click-waddle.svg",
+      "frames": 27,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-wink-sheet",
+      "kind": "term-click-sheet",
+      "file": "term-click-wink-sheet.svg",
+      "frames": 6,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-click-wink",
+      "kind": "term-click",
+      "file": "term-click-wink.svg",
+      "frames": 6,
+      "msPerFrame": 70
+    },
+    {
+      "name": "term-cue-agents-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-agents-sheet.svg",
+      "frames": 4,
+      "msPerFrame": 200
+    },
+    {
+      "name": "term-cue-agents",
+      "kind": "term-cue",
+      "file": "term-cue-agents.svg",
+      "frames": 4,
+      "msPerFrame": 200
+    },
+    {
+      "name": "term-cue-bigfile-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-bigfile-sheet.svg",
+      "frames": 12,
+      "msPerFrame": 120
+    },
+    {
+      "name": "term-cue-bigfile",
+      "kind": "term-cue",
+      "file": "term-cue-bigfile.svg",
+      "frames": 12,
+      "msPerFrame": 120
+    },
+    {
+      "name": "term-cue-coffee-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-coffee-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 250
+    },
+    {
+      "name": "term-cue-coffee",
+      "kind": "term-cue",
+      "file": "term-cue-coffee.svg",
+      "frames": 8,
+      "msPerFrame": 250
+    },
+    {
+      "name": "term-cue-compact-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-compact-sheet.svg",
+      "frames": 9,
+      "msPerFrame": 120
+    },
+    {
+      "name": "term-cue-compact",
+      "kind": "term-cue",
+      "file": "term-cue-compact.svg",
+      "frames": 9,
+      "msPerFrame": 120
+    },
+    {
+      "name": "term-cue-error-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-error-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 130
+    },
+    {
+      "name": "term-cue-error",
+      "kind": "term-cue",
+      "file": "term-cue-error.svg",
+      "frames": 8,
+      "msPerFrame": 130
+    },
+    {
+      "name": "term-cue-fail-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-fail-sheet.svg",
+      "frames": 5,
+      "msPerFrame": 140
+    },
+    {
+      "name": "term-cue-fail",
+      "kind": "term-cue",
+      "file": "term-cue-fail.svg",
+      "frames": 5,
+      "msPerFrame": 140
+    },
+    {
+      "name": "term-cue-fireworks-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-fireworks-sheet.svg",
+      "frames": 12,
+      "msPerFrame": 110
+    },
+    {
+      "name": "term-cue-fireworks",
+      "kind": "term-cue",
+      "file": "term-cue-fireworks.svg",
+      "frames": 12,
+      "msPerFrame": 110
+    },
+    {
+      "name": "term-cue-flag-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-flag-sheet.svg",
+      "frames": 10,
+      "msPerFrame": 130
+    },
+    {
+      "name": "term-cue-flag",
+      "kind": "term-cue",
+      "file": "term-cue-flag.svg",
+      "frames": 10,
+      "msPerFrame": 130
+    },
+    {
+      "name": "term-cue-hello-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-hello-sheet.svg",
+      "frames": 18,
+      "msPerFrame": 100
+    },
+    {
+      "name": "term-cue-hello",
+      "kind": "term-cue",
+      "file": "term-cue-hello.svg",
+      "frames": 18,
+      "msPerFrame": 100
+    },
+    {
+      "name": "term-cue-limit-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-limit-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 300
+    },
+    {
+      "name": "term-cue-limit",
+      "kind": "term-cue",
+      "file": "term-cue-limit.svg",
+      "frames": 8,
+      "msPerFrame": 300
+    },
+    {
+      "name": "term-cue-offline-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-offline-sheet.svg",
+      "frames": 8,
+      "msPerFrame": 160
+    },
+    {
+      "name": "term-cue-offline",
+      "kind": "term-cue",
+      "file": "term-cue-offline.svg",
+      "frames": 8,
+      "msPerFrame": 160
+    },
+    {
+      "name": "term-cue-pass-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-pass-sheet.svg",
+      "frames": 5,
+      "msPerFrame": 140
+    },
+    {
+      "name": "term-cue-pass",
+      "kind": "term-cue",
+      "file": "term-cue-pass.svg",
+      "frames": 5,
+      "msPerFrame": 140
+    },
+    {
+      "name": "term-cue-perm-sheet",
+      "kind": "term-cue-sheet",
+      "file": "term-cue-perm-sheet.svg",
+      "frames": 6,
+      "msPerFrame": 180
+    },
+    {
+      "name": "term-cue-perm",
+      "kind": "term-cue",
+      "file": "term-cue-perm.svg",
+      "frames": 6,
+      "msPerFrame": 180
+    }
+  ]
+}

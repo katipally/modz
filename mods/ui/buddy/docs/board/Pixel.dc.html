@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pixel Clawd animations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet" />
+<style>
+body{margin:0}
+a{color:#d77757}a:hover{color:#f0a080}
+</style>
+</helmet>
+<div style="width: 1400px; height: 4200px; box-sizing: border-box; padding: 48px; position: relative; overflow: hidden; background: #0e0f12; color: #ece9e4; font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;">
+<div style="font: 700 34px/1.1 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.02em; margin: 0 0 10px 0; color: #ece9e4;">{{title}}</div>
+<div style="font: 400 14px/1.55 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; color: #a3a9b4; margin: 0 0 6px 0; max-width: 1050px;">{{intro}}</div>
+<div style="font: 400 14px/1.55 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; color: #a3a9b4; margin: 0 0 6px 0; max-width: 1050px;">{{intro2}}</div>
+<div style="font: 400 12px/1.5 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; color: #d77757; margin: 8px 0 32px 0;">{{tweakNote}}</div>
+<sc-for list="{{sections}}" as="sec" hint-placeholder-count="4">
+<div style="margin: 0 0 36px 0;">
+<div style="font: 700 22px/1.2 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; color: #ece9e4; margin: 0 0 4px 0; padding: 0 0 8px 0; border-bottom: 1px solid #2c303a;">{{sec.title}}</div>
+<div style="font: 400 13px/1.5 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; color: #a3a9b4; margin: 8px 0 16px 0; max-width: 1050px;">{{sec.note}}</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start;">
+<sc-for list="{{sec.cards}}" as="card" hint-placeholder-count="3">
+<div style="background: #16181d; border: 1px solid #2c303a; border-radius: 10px; padding: 16px; min-width: 0;">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 6px 0;">
+<div style="display: flex; align-items: center; gap: 8px; min-width: 0; font: 700 16px/1.2 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; color: #ece9e4;"><span style="{{card.swatch}}"></span><span>{{card.name}}</span></div>
+<button onClick="{{card.toggle}}" style="flex: none; background: #232730; color: #ece9e4; border: 1px solid #3a3f4b; border-radius: 6px; padding: 4px 12px; font: 500 12px/1.3 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; cursor: pointer;">{{card.playLabel}}</button>
+</div>
+<div style="font: 400 12px/1.45 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; color: #a3a9b4; margin: 0 0 6px 0;">{{card.trigger}}</div>
+<div style="font: 400 11px/1.4 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; color: #d77757; margin: 0 0 10px 0;">{{card.meta}}</div>
+<div style="display: flex; align-items: flex-start; gap: 12px; margin: 0 0 12px 0;">
+<div style="background: #0a0a0c; border-radius: 6px; padding: 8px; flex: none;">
+<sc-for list="{{card.rows}}" as="row"><div style="display: flex;"><sc-for list="{{row.cells}}" as="cell"><div style="flex: none; width: {{cell.w}}px; height: {{cell.h}}px; background: {{cell.bg}};"></div></sc-for></div></sc-for>
+</div>
+<div style="min-width: 0; font: 400 11px/1.5 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; color: #a3a9b4;">
+<div style="color: #ece9e4;">{{card.frameLabel}}</div>
+<div>{{card.speedNote}}</div>
+<div>{{card.pausedNote}}</div>
+</div>
+</div>
+<div style="font: 400 11px/1.4 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; color: #a3a9b4; margin: 0 0 6px 0;">{{card.stripLabel}}</div>
+<div style="display: flex; flex-wrap: wrap; gap: 4px;">
+<sc-for list="{{card.tiles}}" as="tile">
+<div style="{{tile.st}}">
+<div style="background: #0a0a0c;">
+<sc-for list="{{tile.rows}}" as="row"><div style="display: flex;"><sc-for list="{{row.cells}}" as="cell"><div style="flex: none; width: {{cell.w}}px; height: {{cell.h}}px; background: {{cell.bg}};"></div></sc-for></div></sc-for>
+</div>
+<div style="font: 400 10px/12px 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; color: #a3a9b4; text-align: center; white-space: nowrap; overflow: hidden;">{{tile.label}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"speed":{"editor":"range","default":1,"min":0.25,"max":3,"step":0.25},"skin":{"editor":"enum","options":["classic","ink","mint","sky","berry","gold"],"default":"classic"},"$preview":{"width":1400,"height":4200}}'>
+const DT = 50;
+
+// Ported from hooks/clawd.ts (pixel Clawd). C is the body, E the eye, . nothing.
+const CLAWD = [
+  '..CCCCCCCCCCCCC..',
+  '..CCCCCCCCCCCCC..',
+  '..CCCECCCCCCCEC..',
+  '..CCCECCCCCCCEC..',
+  'CCCCCCCCCCCCCCCCC',
+  'CCCCCCCCCCCCCCCCC',
+  '..CCCCCCCCCCCCC..',
+  '..CCCCCCCCCCCCC..',
+  '..C.C.......C.C..',
+  '..C.C.......C.C..',
+];
+const EYE_ROWS = [2, 3];
+const EYE_COLS = [5, 13];
+const ARM_ROWS = [4, 5];
+const ARM_COLS = { left: [0, 1], right: [15, 16] };
+const LEG_ROW = 9;
+const LEGS = { outer: [2, 14], inner: [4, 12] };
+const TOP = 2;
+const LEFT = 1;
+const W = LEFT + CLAWD[0].length + 1;
+const H = TOP + CLAWD.length;
+
+const PALETTE = {
+  E: 0x141414, G: 0x3a3a40, g: 0xb8bcc4, b: 0x7aa2f7, W: 0xffffff,
+  w: 0x8b5a2b, y: 0xf5c542, r: 0xe5484d, n: 0x5fd38d, N: 0x5a6fd6,
+};
+const SKINS = { classic: 0xd77757, ink: 0xe8e6e3, mint: 0x7fd1ae, sky: 0x7aa2f7, berry: 0xe07ab0, gold: 0xe5c07b };
+
+const LAPTOP = ['GGGGGGGGG', 'GGGGgGGGG', 'GGGGGGGGG', '.ggggggggggg'];
+const LENS = ['.GG.', 'GbbG', 'GbbG', '.GG.'];
+const PAPER = ['WWWWW', 'WGGGW', 'WWWWW', 'WGGGW', 'WWWWW'];
+const MINI = ['CCC', 'C.C'];
+const HEART = ['rr.rr', '.rrr.'];
+const CROWN = ['y.y.y', 'yyyyy'];
+const NIGHTCAP = ['....NNNN.', '.NNNNNNNNW'];
+const CONFETTI = ['y', 'r', 'n', 'b', 'W'];
+
+const FRAME_MS = { idle: 300, working: 200, happy: 160, oops: 90, asleep: 900, loved: 140 };
+const LOOP = { idle: 40, working: 8, happy: 8, oops: 8, asleep: 3, loved: 10 };
+
+const idleGesture = (f) => {
+  const beat = f % LOOP.idle;
+  if (beat === 7 || beat === 23 || beat === 25) return 'blink';
+  if (beat >= 12 && beat < 16) return 'look-left';
+  if (beat >= 28 && beat < 32) return 'look-right';
+  if (beat >= 34 && beat < 38) return 'wave';
+  return 'none';
+};
+
+const put = (canvas, x, y, c) => {
+  if (y >= 0 && y < H && x >= 0 && x < W) canvas[y][x] = c;
+};
+const stamp = (canvas, art, x, y) =>
+  art.forEach((row, dy) => [...row].forEach((c, dx) => c !== '.' && put(canvas, x + dx, y + dy, c)));
+
+const PIXEL_PROP = {
+  think: 'think', laptop: 'laptop', hammer: 'hammer', magnify: 'magnify', notes: 'notes', web: 'web', agents: 'agents',
+  test: 'laptop', git: 'laptop', install: 'laptop', build: 'hammer', ask: 'think', mcp: 'web', skill: 'notes', plan: 'think',
+};
+
+const draw = (m, activity, f, strain) => {
+  const act = PIXEL_PROP[activity];
+  const g = m === 'idle' ? idleGesture(f) : 'none';
+  const isWorking = m === 'working';
+  const body = CLAWD.map((r) => [...r]);
+  const isShut = m === 'asleep' || m === 'oops' || g === 'blink';
+  const isSquint = m === 'happy' || m === 'loved';
+  const isDown = isWorking && (act === 'laptop' || act === 'notes');
+  const shift = g === 'look-left' ? -1 : g === 'look-right' || (isWorking && !isDown) ? 1 : 0;
+  for (const col of EYE_COLS) {
+    for (const row of EYE_ROWS) body[row][col] = 'C';
+    if (isShut) continue;
+    for (const row of isSquint || isDown ? [EYE_ROWS[1]] : EYE_ROWS) body[row][col + shift] = 'E';
+  }
+  const raise = (cols) => {
+    for (const col of cols) {
+      for (const row of ARM_ROWS) body[row][col] = '.';
+      for (const row of EYE_ROWS) body[row][col] = 'C';
+    }
+  };
+  const isBounce = (m === 'happy' || m === 'loved') && f % 2 === 0;
+  if (isBounce) raise([...ARM_COLS.left, ...ARM_COLS.right]);
+  if (g === 'wave' && f % 2 === 0) raise(ARM_COLS.right);
+  if (isWorking && act === 'hammer' && f % 4 < 2) raise(ARM_COLS.right);
+  if (isWorking && act === 'think') for (const col of f % 2 === 0 ? LEGS.inner : LEGS.outer) body[LEG_ROW][col] = '.';
+  if (m === 'asleep') for (const col of [...LEGS.inner, ...LEGS.outer]) body[LEG_ROW][col] = '.';
+
+  const ox = LEFT + (m === 'oops' ? (f % 2 === 0 ? -1 : 1) : 0);
+  const oy = TOP + ((m === 'happy' || m === 'loved') && f % 2 === 1 ? 1 : m === 'asleep' ? 1 : 0);
+  const canvas = Array.from({ length: H }, () => Array(W).fill(undefined));
+  stamp(canvas, body.map((r) => r.join('')), ox, oy);
+
+  if (isWorking && act === 'laptop') {
+    stamp(canvas, LAPTOP, ox + 3, oy + 6);
+    put(canvas, ox + (f % 2 === 0 ? 1 : 15), oy + 6, 'C');
+    if (f % 3 !== 0) put(canvas, ox + 4 + (f % 7), oy + 5, 'b');
+  }
+  if (isWorking && act === 'hammer') {
+    if (f % 4 < 2) {
+      put(canvas, ox + 16, oy + 1, 'w');
+      put(canvas, ox + 16, oy, 'w');
+      stamp(canvas, ['GGG', 'GGG'], ox + 15, oy - 2);
+    } else {
+      put(canvas, ox + 17, oy + 5, 'w');
+      put(canvas, ox + 17, oy + 6, 'w');
+      stamp(canvas, ['GG', 'GG'], ox + 16, oy + 7);
+      if (f % 4 === 2) put(canvas, ox + 15, oy + 9, 'y');
+    }
+  }
+  if (isWorking && act === 'magnify') {
+    const bob = f % 4 < 2 ? 0 : 1;
+    stamp(canvas, LENS, ox + 11, oy + 1 + bob);
+    stamp(canvas, ['EE', 'EE'], ox + 12, oy + 2 + bob);
+    put(canvas, ox + 15, oy + 5 + bob, 'w');
+  }
+  if (isWorking && act === 'notes') {
+    stamp(canvas, PAPER, ox + 6, oy + 5);
+    if (f % 3 >= 1) put(canvas, ox + 7, oy + 6, 'n');
+    if (f % 3 >= 2) put(canvas, ox + 7, oy + 8, 'n');
+  }
+  if (isWorking && act === 'web') {
+    put(canvas, ox + 8, oy - 1, 'G');
+    put(canvas, ox + 8, oy - 2, f % 2 === 0 ? 'r' : 'y');
+    if (f % 4 < 2) {
+      put(canvas, ox + 6, oy - 2, 'b');
+      put(canvas, ox + 10, oy - 2, 'b');
+    } else {
+      put(canvas, ox + 5, oy - 1, 'b');
+      put(canvas, ox + 11, oy - 1, 'b');
+    }
+  }
+  if (isWorking && act === 'agents') {
+    stamp(canvas, MINI, ox, oy - 2 + (f % 2));
+    stamp(canvas, MINI, ox + 14, oy - 1 - (f % 2));
+  }
+  if (isWorking && act === 'think') {
+    const bubbles = [[ox + 13, oy - 1], [ox + 15, oy - 2], [ox + 17, oy - 2]];
+    bubbles.slice(0, (f % 4) + 1).forEach(([x, y]) => put(canvas, x, y, 'W'));
+  }
+  if (m === 'happy') {
+    stamp(canvas, CROWN, ox + 6, oy - 2);
+    for (let k = 0; k < 6; k++) {
+      const x = (f * 5 + k * 7) % W;
+      const y = (f + k * 3) % H;
+      if (canvas[y][x] === undefined) put(canvas, x, y, CONFETTI[k % CONFETTI.length]);
+    }
+  }
+  if (m === 'loved') stamp(canvas, HEART, ox + 6, oy - 2);
+  if (m === 'asleep') stamp(canvas, NIGHTCAP, ox + 3, oy - 2);
+  if (m === 'oops') put(canvas, ox + 15, oy + 1 + (f % 2), 'b');
+  if (m === 'idle' || isWorking) {
+    const free = (x, y, c) => canvas[y] && canvas[y][x] === undefined && put(canvas, x, y, c);
+    if (strain === 'hot') for (const dy of [0, 1]) free(ox, oy + (f % 4) + dy, 'b');
+    if (strain === 'cold') {
+      free(ox + 16, oy + (f % 4), 'W');
+      free(ox + 17, oy + ((f + 2) % 4), 'W');
+    }
+    if (strain === 'slow') {
+      stamp(canvas, ['ggg', 'gWg', 'ggg'], ox + 15, oy - 2);
+      const hand = [[1, 0], [2, 1], [1, 2], [0, 1]][f % 4];
+      put(canvas, ox + 15 + hand[0], oy - 2 + hand[1], 'r');
+    }
+  }
+  return canvas;
+};
+
+const hex = (c) => '#' + c.toString(16).padStart(6, '0');
+const colorOf = (c, body) => (c === undefined ? 'transparent' : hex(c === 'C' ? body : PALETTE[c]));
+
+// One row per pixel row, each a list of same-color runs sized in px, so a frame stays a few dozen elements.
+const grid = (px, body, size) =>
+  px.map((row) => {
+    const cells = [];
+    for (let x = 0; x < W;) {
+      const bg = colorOf(row[x], body);
+      let end = x + 1;
+      while (end < W && colorOf(row[end], body) === bg) end++;
+      cells.push({ w: (end - x) * size, h: size, bg: bg });
+      x = end;
+    }
+    return { cells: cells };
+  });
+
+const KEY_FRAMES = [[0, 'f0 stand'], [7, 'f7 blink'], [12, 'f12 left'], [28, 'f28 right'], [34, 'f34 wave']];
+
+const mk = (id, name, mood, act, strain, trigger) => ({ id: id, name: name, mood: mood, act: act, strain: strain || 'none', trigger: trigger });
+
+const SECTIONS = [
+  {
+    title: 'Moods',
+    note: 'Pose for each mood, drawn with the think prop while working. Each card loops at its own FRAME_MS for LOOP frames. Triggers come from hooks/register.tsx. Moods settle back on their own: happy after 2.4 s, oops after 1.2 s, idle falls asleep after 120 s.',
+    cards: [
+      mk('m-idle', 'idle', 'idle', 'think', 'none', 'Session start, and after happy or oops settle. Blinks, glances left and right, waves once per 40-beat loop.'),
+      mk('m-working', 'working', 'working', 'think', 'none', 'turn.start. Stays on the think prop until a tool call picks another one (see Activities).'),
+      mk('m-happy', 'happy', 'happy', 'think', 'none', 'turn.complete on the main agent, finished normally. Crown, confetti, bounce.'),
+      mk('m-oops', 'oops', 'oops', 'think', 'none', 'turn.complete with an abort or reason error. Shakes side to side with a sweat drop.'),
+      mk('m-asleep', 'asleep', 'asleep', 'think', 'none', '120 s of idle. Nightcap, eyes shut, legs tucked.'),
+      mk('m-loved', 'loved', 'loved', 'think', 'none', 'Click on Clawd (approximate: hooks never set this mood; the desktop Svg plays loved frame 0 as a 0.9 s jump, so the 10-frame loop shown here is what draw() defines).'),
+    ],
+  },
+  {
+    title: 'Activities',
+    note: 'Working mood with each pixel prop, 8 frames at 200 ms. Only main-agent tool calls change the prop, and it drops back to think when the tool returns. Newer kinds of work borrow the closest prop (PIXEL_PROP).',
+    cards: [
+      mk('a-think', 'think', 'working', 'think', 'none', 'Default while working, and between tools. ask (AskUserQuestion) and plan (Enter/ExitPlanMode) borrow it. Legs alternate, bubbles grow.'),
+      mk('a-laptop', 'laptop', 'working', 'laptop', 'none', 'Bash (default). test, git and install commands borrow it. Arms tap in turn, screen glow flickers.'),
+      mk('a-hammer', 'hammer', 'working', 'hammer', 'none', 'Edit, Write, NotebookEdit. Bash build, tsc, make, compile borrow it. Right arm raises and swings.'),
+      mk('a-magnify', 'magnify', 'working', 'magnify', 'none', 'Read, Grep, Glob. Lens drifts over his right eye.'),
+      mk('a-notes', 'notes', 'working', 'notes', 'none', 'TodoWrite, TaskCreate, TaskUpdate. Skill borrows it. Ticks land on the page lines.'),
+      mk('a-web', 'web', 'working', 'web', 'none', 'WebFetch, WebSearch. Any mcp__ tool borrows it. Antenna blinks, waves radiate.'),
+      mk('a-agents', 'agents', 'working', 'agents', 'none', 'Agent tool. Two minis hop beside his head while subagents run.'),
+    ],
+  },
+  {
+    title: 'Strain marks',
+    note: 'Drawn on idle or working only, shown here on working with the laptop prop, 8 frames at 200 ms. Priority when several apply: hot, then slow, then cold. Marks only fill empty pixels.',
+    cards: [
+      mk('s-slow', 'slow', 'working', 'laptop', 'slow', 'One main-agent tool (not Agent) has run longer than 10 s. A clock hand turns above his shoulder.'),
+      mk('s-hot', 'hot', 'working', 'laptop', 'hot', 'Context or any rate limit at 85% or more (session.measure). Sweat runs down his left side.'),
+      mk('s-cold', 'cold', 'working', 'laptop', 'cold', 'The cache-timer mod says the last cache write is older than its TTL (60 min default). Snow drifts down his right side.'),
+    ],
+  },
+  {
+    title: 'Skins',
+    note: 'Each skin on a standing Clawd, idle mood, 40 beats at 300 ms. Set with /buddy skin NAME and saved in the buddy store. Strips show key frames of the loop. These cards ignore the skin tweak.',
+    cards: Object.keys(SKINS).map((s) => Object.assign(mk('k-' + s, s, 'idle', 'think', 'none', '/buddy skin ' + s + '. Body color only, eyes and props keep the palette.'), { skin: s, isSkin: true })),
+  },
+];
+
+class Component extends DCLogic {
+  init() {
+    if (this.ready) return;
+    this.ready = true;
+    this.clk = {}; this.paused = {}; this.last = {}; this.cache = {}; this.tg = {};
+    const self = this;
+    SECTIONS.forEach(function (sec) {
+      sec.cards.forEach(function (c) {
+        c.n = LOOP[c.mood];
+        c.ms = FRAME_MS[c.mood];
+        self.clk[c.id] = 0;
+        self.tg[c.id] = function () { self.paused[c.id] = !self.paused[c.id]; self.bump(); };
+      });
+    });
+  }
+  bump() { this.setState({ tick: ((this.state && this.state.tick) || 0) + 1 }); }
+  speed() { const s = Number((this.props || {}).speed); return s > 0 ? s : 1; }
+  componentDidMount() {
+    this.init();
+    this.timer = setInterval(() => {
+      const sp = this.speed();
+      let changed = false;
+      SECTIONS.forEach((sec) => sec.cards.forEach((c) => {
+        if (this.paused[c.id]) return;
+        this.clk[c.id] += DT * sp;
+        const f = Math.floor(this.clk[c.id] / c.ms) % c.n;
+        if (f !== this.last[c.id]) { this.last[c.id] = f; changed = true; }
+      }));
+      if (changed) this.bump();
+    }, DT);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  cardVals(c, sp, skinName) {
+    const name = c.skin || skinName;
+    const body = SKINS[name];
+    const f = Math.floor(this.clk[c.id] / c.ms) % c.n;
+    const key = c.id + '|' + name;
+    if (!this.cache[key]) {
+      const frames = c.isSkin ? KEY_FRAMES : Array.from({ length: c.n }, (_, i) => [i, 'f' + i]);
+      this.cache[key] = frames.map((fr) => ({ f: fr[0], label: fr[1], rows: grid(draw(c.mood, c.act, fr[0], c.strain), body, 3) }));
+    }
+    const tiles = this.cache[key].map((t) => ({
+      label: t.label,
+      rows: t.rows,
+      st: 'box-sizing: border-box; border: 1px solid ' + (t.f === f ? '#d77757' : '#2c303a') + '; background: #0a0a0c; border-radius: 3px; overflow: hidden; width: 59px;',
+    }));
+    const isPaused = !!this.paused[c.id];
+    return {
+      name: c.name,
+      swatch: c.isSkin ? 'flex: none; display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: ' + hex(body) + ';' : 'display: none;',
+      trigger: c.trigger,
+      meta: c.n + ' frames, ' + c.ms + ' ms per frame, ' + (c.n * c.ms / 1000).toFixed(2) + ' s loop' + (c.isSkin ? ', ' + hex(body) : ''),
+      frameLabel: 'frame ' + f + ' of ' + c.n,
+      speedNote: sp === 1 ? 'speed 1x, ' + c.ms + ' ms' : 'speed ' + sp + 'x, ' + Math.round(c.ms / sp) + ' ms',
+      pausedNote: isPaused ? 'paused' : 'playing',
+      stripLabel: c.isSkin ? 'Key frames of the 40-beat loop (3 px cells)' : 'All ' + c.n + ' frames (3 px cells)',
+      rows: grid(draw(c.mood, c.act, f, c.strain), body, 10),
+      tiles: tiles,
+      playLabel: isPaused ? 'Play' : 'Pause',
+      toggle: this.tg[c.id],
+    };
+  }
+
+  renderVals() {
+    this.init();
+    const p = this.props || {};
+    const sp = this.speed();
+    const skinName = SKINS[p.skin] !== undefined ? p.skin : 'classic';
+    const self = this;
+    return {
+      title: 'Pixel Clawd',
+      intro: 'The pixel Clawd the buddy mod draws on the desktop and in Svg surfaces. Every frame below is computed by a port of draw() from hooks/clawd.ts, on the same 19 by 12 grid, palette and skins. The terminal build (clawd-term.tsx) uses a different renderer and is on the Terminal board.',
+      intro2: 'Each card loops live at its mood FRAME_MS. Pause freezes one card, the strip below it shows every frame and outlines the one playing. Playback runs on a 50 ms tick, so frame timing is approximate to within one tick.',
+      tweakNote: 'tweaks: speed ' + sp + 'x for all cards, skin ' + skinName + ' for all cards except the Skins section',
+      sections: SECTIONS.map(function (sec) {
+        return { title: sec.title, note: sec.note, cards: sec.cards.map(function (c) { return self.cardVals(c, sp, skinName); }) };
+      }),
+    };
+  }
+}
+</script>
+</body>
+</html>
