@@ -58,19 +58,32 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
 }
 
 
+// The session binds around session.start, so these reads wait for next(e) and a rejected one is retried a few times.
 // The model row of /config lists what this account can pick; listing the commands asks /effort for its hint.
-const loadChoices = async ($: EngineInterface) => {
-  const row = (await $.config.list()).find(r => r.key === 'model')
-  await update($, choices, c => ({ ...c, models: [...(row?.options ?? [])] }))
-  await $.command.list()
+// The engine has no effort getter, so the configured level shows until the first turn reports the live one.
+const RETRY_MS = 2000
+const RETRIES = 3
+const load = async ($: EngineInterface) => {
+  const [model, settings, rows, commands] = await Promise.allSettled([$.session.model(), $.settings.read(), $.config.list(), $.command.list()])
+  if (model.status === 'fulfilled') {
+    const level = settings.status === 'fulfilled' ? settings.value.effortLevel : undefined
+    await update($, info, i => ({ ...i, model: model.value, effort: i?.effort ?? (typeof level === 'string' ? level : undefined) }))
+  }
+  if (rows.status === 'fulfilled') {
+    const options = rows.value.find(r => r.key === 'model')?.options ?? []
+    await update($, choices, c => ({ ...c, models: [...options] }))
+  }
+  return [model, rows, commands].every(r => r.status === 'fulfilled')
+}
+const start = async ($: EngineInterface, attempt = 0) => {
+  if (!(await load($)) && attempt < RETRIES) $.clock.after(RETRY_MS, () => void start($, attempt + 1))
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    const model = await $.session.model()
-    await update($, info, i => ({ ...i, model }))
-    await loadChoices($)
-    return next(e)
+    const started = await next(e)
+    await start($)
+    return started
   })
 
   on('command.describe', { command: 'effort' }, async ($, e, next) => {

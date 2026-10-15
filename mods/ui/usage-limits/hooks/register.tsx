@@ -73,14 +73,36 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
 const TINT = 'claude'
 const tone = (pct: number, calm: string) => (pct >= 85 ? 'error' : pct >= 60 ? 'warning' : calm)
 
-export const register: Register = on => {
-  on('session.start', async ($, e, next) => {
+// The session binds around session.start, so the first read waits for next(e); one that still rejects is retried on the tick.
+let isLoaded = false
+const load = async ($: EngineInterface) => {
+  try {
     const u = await $.session.usage()
     await update($, usage, () => toUsage(u.context, u.rateLimits))
     if (u.context.percent !== undefined) await grow($, u.context.percent)
+    isLoaded = true
+  } catch (err) {
+    $.ui.log(`usage-limits: ${err}`, { to: 'debug' })
+  }
+}
+
+export const register: Register = on => {
+  on('session.start', async ($, e, next) => {
+    const started = await next(e)
     await update($, now, () => Date.now())
-    $.clock.every(TICK_MS, () => void update($, now, () => Date.now()))
-    return next(e)
+    $.clock.every(TICK_MS, () => {
+      void update($, now, () => Date.now())
+      if (!isLoaded) void load($)
+    })
+    await load($)
+    return started
+  })
+
+  // Fires on startup, resume, /clear and compact; /clear raises no session.start, so this is where the tile resets.
+  on('classic.SessionStart', async ($, e, next) => {
+    const started = await next(e)
+    await load($)
+    return started
   })
 
   on('session.measure', async ($, e, next) => {

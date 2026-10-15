@@ -19,4 +19,4 @@ claude plugin marketplace update modz
 claude plugin update usage-limits@modz
 ```
 
-Percentages turn yellow at 60% and red at 85%: the context bar is orange below that, the 5h and 7d values green. Labels and reset times stay uncolored; the time after each limit is how long until it resets. Rate limits show on subscription accounts only. Before the first numbers arrive (and for limits your account does not report) the tile draws `ctx ░░░░░░░░░░ –   5h –   7d –` instead of hiding.
+Percentages turn yellow at 60% and red at 85%: the context bar is orange below that, the 5h and 7d values green. Labels and reset times stay uncolored; the time after each limit is how long until it resets. Rate limits show on subscription accounts only. The numbers are read when the session starts, on resume and after /clear, then follow every turn; Claude Code reports the context fill and the limits only after its first response, so a brand-new session shows placeholders until then. Before they arrive (and for limits your account does not report) the tile draws `ctx ░░░░░░░░░░ –   5h –   7d –` instead of hiding.

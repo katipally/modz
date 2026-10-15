@@ -31,3 +31,43 @@ test('draws placeholders before the first request', async ($, on) => {
   expect((await ui.find({ key: 'cache-timer' }))?.text).toBe('cache – · –')
   await ui.unmount()
 })
+
+const PROPS = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
+const usageWith = (apiUsage: unknown) => ({
+  value: { startedAt: 0, context: { window: 200_000, breakdown: { apiUsage } }, rateLimits: [] } as never,
+})
+
+test('on resume, shows the time since the last response and its hit rate without a new request', async ($, on) => {
+  mock.store(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('classic.SessionStart', () => ({}))
+  on('session.usage', () => usageWith({ model: 'claude-opus-5-5', input_tokens: 1000, output_tokens: 10, cache_read_input_tokens: 99_000, cache_creation_input_tokens: 0 }))
+  await $.classic.SessionStart({ source: 'resume', seconds_since_last_response: 20 * 60 } as never)
+  const ui = await $.ui.mount({ plugin: 'cache-timer', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/^cache +99% · (39|40)m$/)
+  await ui.unmount()
+})
+
+test('on resume without token counts, the hit rate stays a placeholder and the countdown shows', async ($, on) => {
+  mock.store(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('classic.SessionStart', () => ({}))
+  on('session.usage', () => usageWith(null))
+  await $.classic.SessionStart({ source: 'resume', seconds_since_last_response: 90 * 60 } as never)
+  const ui = await $.ui.mount({ plugin: 'cache-timer', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/^cache +– · (29|30)m ago$/)
+  await ui.unmount()
+})
+
+test('a fresh start has nothing to show, and a rejecting usage call on resume still gives the countdown', async ($, on) => {
+  mock.store(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('classic.SessionStart', () => ({}))
+  on('session.usage', () => { throw new Error('session not bound') })
+  await $.classic.SessionStart({ source: 'startup' } as never)
+  const ui = await $.ui.mount({ plugin: 'cache-timer', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'cache-timer' }))?.text).toBe('cache – · –')
+  await $.classic.SessionStart({ source: 'resume', seconds_since_last_response: 60 } as never)
+  expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/^cache +– · 59m$/)
+  await ui.unmount()
+})

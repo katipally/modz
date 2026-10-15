@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 import type { RenderElement } from 'claude-code'
 
 const PROPS = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
@@ -81,4 +81,40 @@ test('draws placeholders before the model is known', async ($, on) => {
     expect((await ui.find({ key: 'model-info' }))?.text).toBe('model – · effort –')
     await ui.unmount()
   }
+})
+
+test('shows the model and configured effort at session start, before any turn', async ($, on) => {
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('session.model', () => ({ value: 'claude-opus-5-5' }))
+  on('settings.read', () => ({ value: { effortLevel: 'high' } }))
+  on('config.list', () => ({ value: [] }))
+  on('command.list', () => ({ value: [] }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true } as never)
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({ plugin: 'model-info', surface, component: 'AbovePrompt', props: PROPS })
+    expect(await shown(ui, surface, 'model')).toMatch(surface === 'terminal' ? /^Opus 5\.5/ : /^claude-opus-5-5$/)
+    expect(await shown(ui, surface, 'effort')).toMatch(/^high/)
+    await ui.unmount()
+  }
+})
+
+test('keeps the placeholders when the model read rejects at start, then retries', async ($, on) => {
+  const clock = mock.clock(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  let calls = 0
+  on('session.model', () => {
+    if (calls++ === 0) throw new Error('session not bound')
+    return { value: 'claude-sonnet-5-5' }
+  })
+  on('settings.read', () => ({ value: {} }))
+  on('config.list', () => ({ value: [] }))
+  on('command.list', () => ({ value: [] }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true } as never)
+  const ui = await $.ui.mount({ plugin: 'model-info', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'model-info' }))?.text).toBe('model – · effort –')
+  await clock.advance(2000)
+  expect(await shown(ui, 'desktop', 'model')).toBe('claude-sonnet-5-5')
+  await ui.unmount()
 })

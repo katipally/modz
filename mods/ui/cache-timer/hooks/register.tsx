@@ -68,12 +68,26 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
+    const started = await next(e)
     await $.command.register({ name: 'cache-ttl', description: 'Set how long the prompt cache stays warm: 5m or 1h', argumentHint: '5m | 1h' })
     const ttl = (await $.store.get('ttlMin')) as number | undefined
     if (ttl) await update($, ttlMin, () => ttl)
     await update($, now, () => Date.now())
     $.clock.every(TICK_MS, () => void update($, now, () => Date.now()))
-    return next(e)
+    return started
+  })
+
+  // A resumed transcript's last response says how long ago the cache was last touched; its token counts come from the
+  // live window when the engine has them, else only the countdown shows.
+  on('classic.SessionStart', async ($, e, next) => {
+    const started = await next(e)
+    if ((e.source === 'resume' || e.source === 'fork') && e.seconds_since_last_response !== undefined) {
+      const at = Date.now() - e.seconds_since_last_response * 1000
+      const u = await $.session.usage({ breakdown: 'summary' }).then(s => s.context.breakdown?.apiUsage, () => null)
+      await update($, last, () => ({ at, read: u?.cache_read_input_tokens ?? 0, write: u?.cache_creation_input_tokens ?? 0, fresh: u?.input_tokens ?? 0 }))
+      await update($, now, () => Date.now())
+    }
+    return started
   })
 
   on('command.run', { command: 'cache-ttl' }, async ($, e) => {
@@ -112,7 +126,7 @@ export const register: Register = on => {
       <Box key="cache-timer" flexDirection="row">
         <Text>
           <Text color={TINT}>{'cache'.padEnd(5)} </Text>
-          {r ? <Text bold color={hit >= 90 ? TINT : hit >= 70 ? 'warning' : 'error'}>{hit}%</Text> : <Text dimColor>–</Text>}
+          {r && total ? <Text bold color={hit >= 90 ? TINT : hit >= 70 ? 'warning' : 'error'}>{hit}%</Text> : <Text dimColor>–</Text>}
           {tw > 0 && <Text color={TINT}> {SPARKLE[tw % SPARKLE.length]}</Text>}
           <Text dimColor> · </Text>
           {r ? <Text color={isWarm ? 'success' : 'error'}>{isWarm ? span(left) : `${span(-left)} ago`}</Text> : <Text dimColor>–</Text>}

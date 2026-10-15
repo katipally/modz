@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 import type { RenderElement } from 'claude-code'
 
 test('draws the context bar and both limits with time left', async ($, on) => {
@@ -56,4 +56,58 @@ test('draws placeholders before any usage arrives', async ($, on) => {
     expect(row).not.toMatch(/NaN|undefined/)
     await ui.unmount()
   }
+})
+
+const PROPS = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
+const START = { cwd: '/', surface: 'terminal', isInteractive: true } as never
+const usageOf = (percent?: number) => ({
+  startedAt: 0,
+  context: { window: 200_000, percent },
+  rateLimits: [{ kind: 'five_hour', percentUsed: 42 }, { kind: 'seven_day', percentUsed: 6 }],
+})
+
+test('shows the numbers at session start, before any model turn', async ($, on) => {
+  mock.clock(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('session.usage', () => ({ value: usageOf(33) }))
+  await $.session.start(START)
+  const ui = await $.ui.mount({ plugin: 'usage-limits', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  const row = (await ui.find({ key: 'usage-limits' }))?.text ?? ''
+  expect(row).toContain('33%')
+  expect(row).toContain('5h 42%')
+  expect(row).toContain('7d 6%')
+  await ui.unmount()
+})
+
+test('refreshes on resume and clears the bar on /clear', async ($, on) => {
+  mock.clock(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('classic.SessionStart', () => ({}))
+  let usage = usageOf(60)
+  on('session.usage', () => ({ value: usage }))
+  const ui = await $.ui.mount({ plugin: 'usage-limits', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  await $.classic.SessionStart({ source: 'resume' })
+  expect((await ui.find({ key: 'usage-limits' }))?.text).toContain('60%')
+  usage = { ...usageOf(), rateLimits: [] }
+  await $.classic.SessionStart({ source: 'clear' })
+  expect((await ui.find({ key: 'usage-limits' }))?.text).toMatch(/ctx +░+ –5h –7d –/)
+  await ui.unmount()
+})
+
+test('keeps the placeholders when usage rejects at start, then fills in on the next tick', async ($, on) => {
+  const clock = mock.clock(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  let calls = 0
+  on('session.usage', () => {
+    if (calls++ === 0) throw new Error('session not bound')
+    return { value: usageOf(21) }
+  })
+  await $.session.start(START)
+  const ui = await $.ui.mount({ plugin: 'usage-limits', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'usage-limits' }))?.text).toMatch(/ctx +░+ –5h –7d –/)
+  await clock.advance(30_000)
+  expect((await ui.find({ key: 'usage-limits' }))?.text).toContain('21%')
+  await ui.unmount()
 })
