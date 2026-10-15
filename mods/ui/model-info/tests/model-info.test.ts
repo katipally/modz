@@ -143,3 +143,22 @@ test('a retry whose state write fails is logged, keeps the placeholder and rejec
   expect((await ui.find({ key: 'model-info' }))?.text).toBe('model – · effort –')
   await ui.unmount()
 })
+
+test('the classic start event shows the model while the session is not yet bound', async ($, on) => {
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('classic.SessionStart', () => ({}))
+  on('session.model', () => { throw new Error('session not bound') })
+  await $.classic.SessionStart({ source: 'resume', model: 'claude-opus-5-5' } as never)
+  const ui = await $.ui.mount({ plugin: 'model-info', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect(await shown(ui, 'terminal', 'model')).toMatch(/^Opus 5\.5/)
+  await ui.unmount()
+})
+
+test('with no model from any source, the tile stays a placeholder', async ($, on) => {
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('classic.SessionStart', () => ({}))
+  await $.classic.SessionStart({ source: 'startup' } as never)
+  const ui = await $.ui.mount({ plugin: 'model-info', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'model-info' }))?.text).toBe('model – · effort –')
+  await ui.unmount()
+})

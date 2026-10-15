@@ -1,5 +1,7 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, Timer } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, Timer, ModelUsage } from 'claude-code'
+
+import type { Request } from '../types'
 
 // Claude Code's prompt cache lives 5 minutes or 1 hour depending on the account; the engine does not say which.
 const TTL_CHOICES: Record<string, number> = { '5m': 5, '1h': 60 }
@@ -66,6 +68,22 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
 }
 
 
+// The newest main-thread response a transcript file holds, its time and token counts; null when the file is missing, over the
+// 4 MiB $.fs.read cap, or has none.
+type Row = { type?: string; isSidechain?: boolean; timestamp?: string; message?: { usage?: Partial<ModelUsage> } }
+const lastResponse = async ($: EngineInterface, path: string): Promise<Request | null> => {
+  const lines = await $.fs.read(path).then(text => text.split('\n').reverse(), () => [])
+  for (const line of lines) {
+    if (!line.includes('"type":"assistant"')) continue
+    const row = (() => { try { return JSON.parse(line) as Row } catch { return {} as Row } })()
+    const u = row.type === 'assistant' && !row.isSidechain ? row.message?.usage : undefined
+    const at = Date.parse(row.timestamp ?? '')
+    const request = { at, read: u?.cache_read_input_tokens ?? 0, write: u?.cache_creation_input_tokens ?? 0, fresh: u?.input_tokens ?? 0 }
+    if (u && at && request.read + request.write + request.fresh > 0) return request
+  }
+  return null
+}
+
 // A cache that /clear or a resume left behind, or a compaction rewrote, no longer says anything about the next request.
 const forget = ($: EngineInterface) => update($, last, () => null)
 
@@ -91,15 +109,20 @@ export const register: Register = on => {
     return compacted
   }).catch(($, e, next) => next(e))
 
-  // A resumed transcript's last response says how long ago the cache was last touched, which no other event carries; its
-  // token counts come from the live window when the engine has them, else only the countdown shows. Classic hooks do not
-  // run where an organization manages Claude Code, and there a resumed session shows the placeholders until its first request.
+  // A resumed transcript's last response says how long ago the cache was last touched, which no other event carries. The
+  // transcript file gives its token counts too; a file too big to read falls back to the live window's counts when the engine
+  // has them, else only the countdown shows. Classic hooks do not run where an organization manages Claude Code, and there a
+  // resumed session shows the placeholders until its first request.
   on('classic.SessionStart', async ($, e, next) => {
     const started = await next(e)
-    if ((e.source === 'resume' || e.source === 'fork') && e.seconds_since_last_response !== undefined) {
-      const at = Date.now() - e.seconds_since_last_response * 1000
-      const u = await $.session.usage({ breakdown: 'summary' }).then(s => s.context.breakdown?.apiUsage, () => null)
-      await update($, last, () => ({ at, read: u?.cache_read_input_tokens ?? 0, write: u?.cache_creation_input_tokens ?? 0, fresh: u?.input_tokens ?? 0 }))
+    if (e.source === 'resume' || e.source === 'fork') {
+      const found = await lastResponse($, e.transcript_path)
+      if (found) await update($, last, () => found)
+      else if (e.seconds_since_last_response !== undefined) {
+        const at = Date.now() - e.seconds_since_last_response * 1000
+        const u = await $.session.usage({ breakdown: 'summary' }).then(s => s.context.breakdown?.apiUsage, () => null)
+        await update($, last, () => ({ at, read: u?.cache_read_input_tokens ?? 0, write: u?.cache_creation_input_tokens ?? 0, fresh: u?.input_tokens ?? 0 }))
+      }
       await update($, now, () => Date.now())
     }
     return started

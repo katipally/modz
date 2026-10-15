@@ -1,4 +1,4 @@
-export type Limit = { kind: string; percentUsed: number; resetsAt?: string }
+export type Limit = { kind: string; percentUsed?: number; resetsAt?: string; isStale?: boolean }
 
 export type Usage = { contextPercent?: number; limits: Limit[] }
 

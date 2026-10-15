@@ -1,6 +1,6 @@
 {
   "name": "cache-timer",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Prompt cache hit rate for the last request, and whether the cache is still warm with a countdown, above the prompt",
   "author": {
     "name": "katipally"

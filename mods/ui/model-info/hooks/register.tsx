@@ -86,6 +86,15 @@ export const register: Register = on => {
     return started
   })
 
+  // The classic start event names the model before the session binds, and a resumed or forked session may run another than
+  // the tile last showed. Not where an organization manages Claude Code; there the model read above is the first source.
+  on('classic.SessionStart', async ($, e, next) => {
+    const started = await next(e)
+    const model = e.model
+    if (model) await update($, info, i => ({ ...i, model }))
+    return started
+  }).catch(($, e, next) => next(e))
+
   on('command.describe', { command: 'effort' }, async ($, e, next) => {
     if (e.argumentHint) {
       const efforts = levelsOf(e.argumentHint)

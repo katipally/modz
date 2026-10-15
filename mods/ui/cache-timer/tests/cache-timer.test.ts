@@ -88,3 +88,36 @@ test('/clear and a resume drop the old cache state without classic hooks', async
   }
   await ui.unmount()
 })
+
+const line = (o: object) => JSON.stringify(o)
+const assistant = (timestamp: string, usage: object, extra: object = {}) => line({ type: 'assistant', timestamp, message: { usage }, ...extra })
+
+test('on resume, the transcript file gives the last main-thread response, its hit rate and its time', async ($, on) => {
+  mock.store(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('classic.SessionStart', () => ({}))
+  const at = new Date(Date.now() - 20 * 60_000).toISOString()
+  const transcript = [
+    assistant(at, { input_tokens: 100, cache_read_input_tokens: 9_900, cache_creation_input_tokens: 0 }),
+    line({ type: 'user', timestamp: at }),
+    assistant(new Date().toISOString(), { input_tokens: 5_000, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }, { isSidechain: true }),
+    'not json "type":"assistant"',
+  ].join('\n')
+  on('fs.read', () => ({ value: transcript }))
+  await $.classic.SessionStart({ source: 'resume', transcript_path: '/t.jsonl' } as never)
+  const ui = await $.ui.mount({ plugin: 'cache-timer', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/^cache +99% · (39|40)m$/)
+  await ui.unmount()
+})
+
+test('on resume with an unreadable transcript, the engine counts and the elapsed time stand in', async ($, on) => {
+  mock.store(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('classic.SessionStart', () => ({}))
+  on('fs.read', () => { throw new Error('over 4 MiB') })
+  on('session.usage', () => usageWith({ model: 'claude-opus-5-5', input_tokens: 1000, output_tokens: 10, cache_read_input_tokens: 99_000, cache_creation_input_tokens: 0 }))
+  await $.classic.SessionStart({ source: 'resume', transcript_path: '/t.jsonl', seconds_since_last_response: 20 * 60 } as never)
+  const ui = await $.ui.mount({ plugin: 'cache-timer', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/^cache +99% · (39|40)m$/)
+  await ui.unmount()
+})

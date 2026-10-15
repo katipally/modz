@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, SessionContextUsage, SessionRateLimit, Timer } from 'claude-code'
+import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, SessionRateLimit, Timer } from 'claude-code'
 
-import type { Usage } from '../types'
+import type { Limit } from '../types'
 
 // Reset countdowns read in minutes, so a 30s tick keeps them honest.
 const TICK_MS = 30_000
@@ -25,10 +25,25 @@ const grow = async ($: EngineInterface, target: number) => {
   })
 }
 
-const toUsage = (context: SessionContextUsage, limits: SessionRateLimit[]): Usage => ({
-  contextPercent: context.percent,
-  limits: limits.map(({ kind, percentUsed, resetsAt }) => ({ kind, percentUsed, resetsAt })),
-})
+const toLimits = (limits: SessionRateLimit[]): Limit[] => limits.map(({ kind, percentUsed, resetsAt }) => ({ kind, percentUsed, resetsAt }))
+
+// Limits of the last session that saw any, so a new one shows them before its first response reports. They are marked stale
+// (other sessions may have used the window since), and a window that has reset since shows its placeholder.
+const seed = async ($: EngineInterface) => {
+  const saved = await $.store.get('limits').catch(() => undefined)
+  if (!Array.isArray(saved)) return
+  const t = Date.now()
+  const limits = (saved as Limit[]).map(l => (!l.resetsAt || Date.parse(l.resetsAt) > t ? { ...l, isStale: true } : { kind: l.kind, isStale: true }))
+  await update($, usage, u => (u.limits.length ? u : { ...u, limits }))
+}
+
+// An engine reading with no limits (a fresh session) keeps the stale ones shown; a live reading replaces them.
+const apply = async ($: EngineInterface, percent: number | undefined, limits: SessionRateLimit[]) => {
+  const live = toLimits(limits)
+  await update($, usage, u => ({ contextPercent: percent, limits: live.length ? live : u.limits.filter(l => l.isStale) }))
+  if (percent !== undefined) await grow($, percent)
+  if (live.length) await $.store.set('limits', live).catch(() => undefined)
+}
 
 // "6d 18h" past a day, "2h 5m" past an hour, else "27m".
 const span = (ms: number) => {
@@ -76,11 +91,15 @@ const tone = (pct: number, calm: string) => (pct >= 85 ? 'error' : pct >= 60 ? '
 // The session binds around session.start, so the first read waits for next(e); one that still rejects is retried on the tick.
 // Every reload clears isLoaded first, so a failed one is retried the same way.
 let isLoaded = false
+// A resumed session has no live window until its first response, so the last response's size from classic.SessionStart stands in;
+// that count includes the output, so it reads a hair above the status line's own figure. A session with no prompts is 0% full.
+let resumedTokens: number | undefined
 const load = async ($: EngineInterface) => {
   try {
-    const u = await $.session.usage()
-    await update($, usage, () => toUsage(u.context, u.rateLimits))
-    if (u.context.percent !== undefined) await grow($, u.context.percent)
+    const [u, turns] = await Promise.all([$.session.usage(), $.session.turns().catch(() => undefined)])
+    const { percent, window } = u.context
+    const seeded = resumedTokens && window ? Math.min(100, Math.round((resumedTokens / window) * 100)) : undefined
+    await apply($, percent ?? seeded ?? (turns === 0 && window ? 0 : undefined), u.rateLimits)
     isLoaded = true
   } catch (err) {
     $.ui.log(`usage-limits: ${err}`, { to: 'debug' })
@@ -100,6 +119,7 @@ export const register: Register = on => {
       void update($, now, () => Date.now())
       if (!isLoaded) void load($)
     })
+    await seed($)
     await load($)
     return started
   })
@@ -108,7 +128,9 @@ export const register: Register = on => {
   on('session.end', async ($, e, next) => {
     if (e.reason === 'clear' || e.reason === 'resume') {
       isLoaded = false
+      resumedTokens = undefined
       await update($, usage, () => ({ limits: [] }))
+      await seed($)
     }
     return next(e)
   })
@@ -122,13 +144,13 @@ export const register: Register = on => {
   // Loads right after /clear, resume and compact where the engine runs classic hooks; not where an organization manages Claude Code.
   on('classic.SessionStart', async ($, e, next) => {
     const started = await next(e)
+    resumedTokens = e.source === 'resume' || e.source === 'fork' ? e.context_tokens : undefined
     await reload($)
     return started
   }).catch(($, e, next) => next(e))
 
   on('session.measure', async ($, e, next) => {
-    await update($, usage, () => toUsage(e.context, e.rateLimits))
-    if (e.context.percent !== undefined) await grow($, e.context.percent)
+    await apply($, e.context.percent, e.rateLimits)
     return next(e)
   })
 
@@ -142,10 +164,10 @@ export const register: Register = on => {
 
     const width = Math.max(5, Math.min(10, Math.floor(e.props.bodyColumns / 12)))
     const filled = pct === undefined ? 0 : Math.min(width, Math.max(0, Math.round((shown / 100) * width)))
-    const metric = (label: string, value?: number, detail?: string) => (
+    const metric = (label: string, value?: number, detail?: string, isStale?: boolean) => (
       <Text>
         <Text dimColor>{label} </Text>
-        {value === undefined ? <Text dimColor>–</Text> : <Text bold color={tone(value, 'success')}>{Math.round(value)}%</Text>}
+        {value === undefined ? <Text dimColor>–</Text> : isStale ? <Text dimColor>~{Math.round(value)}%</Text> : <Text bold color={tone(value, 'success')}>{Math.round(value)}%</Text>}
         {detail && <Text dimColor> · {detail}</Text>}
       </Text>
     )
@@ -159,7 +181,7 @@ export const register: Register = on => {
           {pct === undefined ? <Text dimColor>–</Text> : <Text bold color={tone(pct, TINT)}>{Math.round(pct)}%</Text>}
         </Text>
         {u.limits.length > 0
-          ? u.limits.map(l => metric(LABELS[l.kind] ?? l.kind, l.percentUsed, l.resetsAt && span(Date.parse(l.resetsAt) - t)))
+          ? u.limits.map(l => metric(LABELS[l.kind] ?? l.kind, l.percentUsed, l.resetsAt && span(Date.parse(l.resetsAt) - t), l.isStale))
           : [metric('5h'), metric('7d')]}
       </Box>
     ))
