@@ -16,7 +16,7 @@ export const HEAD = {
 export const BODY = { rest: '▝▜█████▛▘', both: '▗▟█████▙▖', left: '▗▟█████▛▘', right: '▝▜█████▙▖' }
 export const FEET = {
   stand: '  ▘▘ ▝▝  ',
-  step: '  ▝▘ ▘▝  ',
+  step: '  ▝▝ ▘▘  ',
   sit: '  ▀▀ ▀▀  ',
   none: '         ',
   desk: ' ▄▄▄▄▄▄▄ ',

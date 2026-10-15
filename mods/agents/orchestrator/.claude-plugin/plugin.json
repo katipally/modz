@@ -1,7 +1,7 @@
 {
   "name": "orchestrator",
-  "version": "0.3.0",
-  "description": "Pick orchestrator settings once; only the main agent gets them, and subagent limits are enforced",
+  "version": "0.5.0",
+  "description": "Pick orchestrator settings once; the main agent delegates all reads and writes, and subagent limits (models, how many run at once, context per subagent) are enforced",
   "types": "./types/index.d.ts",
   "author": {
     "name": "katipally"

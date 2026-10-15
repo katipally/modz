@@ -7,10 +7,20 @@ export type Config = {
   models: Model[]
   maxAgents: number
   contextK: number
+  delegate: boolean
 }
 
 declare module 'claude-code' {
   interface PluginState {
-    orchestrator: { config: Config; spawned: number; editing: Field | null; isOpen: boolean; running: string[]; spin: number; openMenu: string | null }
+    orchestrator: {
+      config: Config
+      editing: Field | null
+      isOpen: boolean
+      running: string[]
+      spawned: string[]
+      retired: string[]
+      saved: Config | null
+      spin: number
+    }
   }
 }

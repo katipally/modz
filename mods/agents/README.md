@@ -4,4 +4,4 @@ Orchestration and subagent control.
 
 | Mod | What it does |
 | --- | --- |
-| [orchestrator](orchestrator) | Orchestrator menu: models, max agents, context limit for the main agent only |
+| [orchestrator](orchestrator) | Orchestrator menu: the main agent delegates all reads and writes; models, agents at once and a context cap per subagent are enforced |

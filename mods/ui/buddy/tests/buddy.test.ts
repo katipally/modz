@@ -1,5 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { RenderElement } from 'claude-code'
+import { FEET } from '../hooks/clawd-moves'
 
 const PROPS = { hasSurvey: false, isWorking: false, maxRows: 8, bodyColumns: 100, scroll: {} as never, view: {} as never }
 
@@ -43,4 +44,10 @@ test('off the terminal Clawd is one fixed-size Svg that animates and reacts to c
   const still = await svg()
   expect(still.isInteractive).toBe(false)
   expect(String(still.source)).not.toContain('<animate')
+})
+
+test('pacing moves every leg', () => {
+  const legs = [...FEET.stand].flatMap((c, i) => (c === ' ' ? [] : [i]))
+  expect(legs.length).toBe(4)
+  for (const i of legs) expect(FEET.step[i]).not.toBe(FEET.stand[i])
 })

@@ -16,7 +16,7 @@
     {
       "name": "orchestrator",
       "source": "./mods/agents/orchestrator",
-      "description": "Orchestrator menu above the prompt: models, max agents and context limit for the main agent only",
+      "description": "Orchestrator menu above the prompt: the main agent delegates all reads and writes; models, agents at once and a context cap per subagent are enforced",
       "category": "agents"
     },
     {
