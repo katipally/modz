@@ -8,6 +8,13 @@ An Orchestrator switch above the prompt. The main agent delegates all reads and 
 /plugin install orchestrator --marketplace katipally/modz
 ```
 
+Update, then restart your sessions (more in the [main README](../../../README.md#update)):
+
+```
+claude plugin marketplace update modz
+claude plugin update orchestrator@modz
+```
+
 ## Use
 
 ```

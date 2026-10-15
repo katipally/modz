@@ -12,6 +12,13 @@ Opus 5.5 ▾   high ▾
 /plugin install model-info --marketplace katipally/modz
 ```
 
+Update, then restart your sessions (more in the [main README](../../../README.md#update)):
+
+```
+claude plugin marketplace update modz
+claude plugin update model-info@modz
+```
+
 ## Use
 
 - The model dropdown lists exactly what `/config`'s Model row offers your account. Picking one runs Claude Code's own `/model`.

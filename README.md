@@ -18,6 +18,25 @@ Or one mod at a time, in any Claude Code session:
 
 Answer `y` to add the marketplace, then pick a scope (user scope loads it in every session).
 
+## Update
+
+Installed mods do not update on their own. Refresh the marketplace, update each mod you have, then restart every running session:
+
+```
+claude plugin marketplace update modz
+claude plugin update orchestrator@modz
+claude plugin update usage-limits@modz
+claude plugin update cache-timer@modz
+claude plugin update model-info@modz
+claude plugin update buddy@modz
+```
+
+- The `modz` bundle installs each mod as its own plugin, so update the mods by name as above.
+- A mod that is already on the newest version says so; that is fine.
+- Check with `claude plugin list`: each mod's version should match its `plugin.json` here.
+- A second Claude config (`CLAUDE_CONFIG_DIR`, or a shell alias that sets it) keeps its own installs: run the same commands through it, e.g. `CLAUDE_CONFIG_DIR=~/.claude-work claude plugin update buddy@modz`.
+- If you disabled a mod (for testing, say), `claude plugin enable <mod>@modz` turns it back on.
+
 ## Mods
 
 | Mod | Category | What it does |
@@ -37,7 +56,7 @@ Mods that draw above the prompt place a tile in one shared band (`modz-band`): a
   [bot]    ctx   ███░░░░░░░ 26%   5h 4% · 4h 35m   7d 7% · 6d 17h
            cache 99% ✦ · 58m
            Opus 5.5 ▾   medium ▾ ✓
-           Orchestrator on ▾   ⠹ 2 running
+           ● Orchestrator ON   Settings ▾   ⠹ 2/2 running
 ```
 
 Each tile has its own Claude theme color (usage `claude`, cache `suggestion`, model `merged`, orchestrator `planMode`). Labels and details are dim, values bold. Usage values turn yellow at 60% and red at 85%; the cache time is red once cold.
@@ -76,8 +95,17 @@ modz/
 4. Run `./scripts/check.sh`.
 5. Bump `version` in the mod's `plugin.json` on every change, or installed copies never update.
 
-Run a mod from its folder without installing it:
+Run a mod from its folder without installing it, in its own terminal (not through `!` inside a session, which has no terminal to draw in):
 
 ```
 claude --plugin-dir mods/<category>/<mod>
+```
+
+To test a change to a mod you already have installed, disable the installed copy first so the two do not both load, and enable it again once you have pushed and updated:
+
+```
+claude plugin disable <mod>@modz
+claude --plugin-dir mods/<category>/<mod>
+# after pushing:
+claude plugin marketplace update modz && claude plugin update <mod>@modz && claude plugin enable <mod>@modz
 ```

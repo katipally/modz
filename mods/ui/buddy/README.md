@@ -21,6 +21,13 @@ Clawd, Claude Code's mascot, animated at the left of the mod band above the prom
 /plugin install buddy --marketplace katipally/modz
 ```
 
+Update, then restart your sessions (more in the [main README](../../../README.md#update)):
+
+```
+claude plugin marketplace update modz
+claude plugin update buddy@modz
+```
+
 ## Use
 
 Clawd acts out what the agent is doing:
