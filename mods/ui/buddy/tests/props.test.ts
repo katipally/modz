@@ -1,7 +1,9 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 import type { RenderElement, RenderNode } from 'claude-code'
 
-import { draw } from '../hooks/clawd'
+import { draw, H, PALETTE, PIXEL_CUES, W } from '../hooks/clawd'
+import { CUES } from '../hooks/clawd-cues'
+import type { Cue } from '../types'
 import { CLICKS, COLS, dealClicks, place } from '../hooks/clawd-moves'
 
 const PROPS = { hasSurvey: false, isWorking: false, maxRows: 8, bodyColumns: 100, scroll: {} as never, view: {} as never }
@@ -179,6 +181,8 @@ describe('buddy\'s terminal motion and strain', () => {
       const text = lines(await ui.drawn({ in: 'clawd' })).join('\n')
       release()
       await call
+      // A test run's verdict plays over him for a moment; let it finish before the next tool.
+      await clock.advance(1000)
       return text
     }
     expect(await doing('Bash', { command: 'npm test' })).toContain('◔ testing')
@@ -254,5 +258,31 @@ describe('buddy\'s pixel Clawd (desktop, VS Code, mobile)', () => {
     expect(rows('idle', 'think', 0, 'hot').join('')).toContain('b')
     expect(rows('idle', 'think', 0, 'cold').join('')).toContain('W')
     expect(rows('happy', 'think', 0, 'hot')).toEqual(rows('happy', 'think', 0))
+  })
+
+  test('has a pixel drawing for every cue, with its props, in the same box and at the terminal\'s pace', () => {
+    const props: Record<Cue, string> = {
+      perm: 'y', error: 'Egr', pass: 'n', fail: 'r', compact: 'b', limit: 'gy', agents: 'Cy', coffee: 'wg',
+      bigfile: 'WGn', offline: 'gby', flag: 'wr', hello: 'Wy', fireworks: 'yrbn',
+    }
+    for (const [name, spec] of Object.entries(PIXEL_CUES) as [Cue, (typeof PIXEL_CUES)[Cue]][]) {
+      const frames = Array.from({ length: spec.n }, (_, f) => spec.art(f, 3))
+      const seen = new Set(frames.flat(2))
+      for (const letter of props[name]) expect(seen.has(letter), `${name} draws ${letter}`).toBe(true)
+      for (const px of frames) {
+        expect(px.length, name).toBe(H)
+        for (const row of px) {
+          expect(row.length, name).toBe(W)
+          for (const c of row) expect(c === undefined || c === 'C' || c in PALETTE, `${name} uses ${c}`).toBe(true)
+        }
+      }
+      expect(new Set(frames.map(f => f.map(r => r.join('')).join('/'))).size, `${name} moves`).toBeGreaterThan(1)
+      expect([spec.ms, spec.n, spec.rest], name).toEqual([CUES[name].ms, CUES[name].frames({ clones: 3, hash: '' }).length, CUES[name].rest])
+    }
+  })
+
+  test('draws one mini-Clawd per running subagent, three at most', () => {
+    const minis = (clones: number) => PIXEL_CUES.agents.art(0, clones)[0]!.filter(c => c === 'C').length
+    expect([1, 2, 3, 4, 20].map(minis)).toEqual([3, 6, 9, 9, 9])
   })
 })

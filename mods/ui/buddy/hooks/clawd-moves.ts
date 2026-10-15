@@ -25,12 +25,12 @@ export const FEET = {
 }
 
 export const STAND: Sprite = [HEAD.open, BODY.rest, FEET.stand]
-const CHEER: Sprite = [HEAD.open, BODY.both, FEET.stand]
-const AIR: Sprite = [HEAD.open, BODY.both, FEET.none]
+export const CHEER: Sprite = [HEAD.open, BODY.both, FEET.stand]
+export const AIR: Sprite = [HEAD.open, BODY.both, FEET.none]
 const LEFT: Sprite = [HEAD.left, BODY.rest, FEET.stand]
 const RIGHT: Sprite = [HEAD.right, BODY.rest, FEET.stand]
 const UP: Sprite = [HEAD.down, BODY.rest, FEET.stand]
-const SHUT: Sprite = [HEAD.shut, BODY.rest, FEET.stand]
+export const SHUT: Sprite = [HEAD.shut, BODY.rest, FEET.stand]
 const WINK: Sprite = [HEAD.wink, BODY.rest, FEET.stand]
 
 // Turning around, front to back and round again: each step is a little narrower than the last.

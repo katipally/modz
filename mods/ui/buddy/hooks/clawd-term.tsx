@@ -1,12 +1,14 @@
 import type { ClientModule } from 'claude-code'
 
-import type { Activity, Mood, Scene, Strain } from '../types'
+import type { Activity, Cue, Mood, Scene, Strain } from '../types'
 import { FRAME_MS, hex, LOOP, SKINS } from './clawd'
+import { CUES, cueRows } from './clawd-cues'
+import type { Cell } from './clawd-cues'
 import { BODY, CLICK_MS, CLICKS, dealClicks, FEET, HEAD, marksOf, place } from './clawd-moves'
 import type { Frame, Mark, Sprite } from './clawd-moves'
 
 // `scene` is refreshed on every draw so the one ticker always plays the latest mood.
-type Local = { scene: Scene; frame: number; elapsed: number; click?: { name: string; step: number }; deck: string[]; last?: string }
+type Local = { scene: Scene; frame: number; elapsed: number; click?: { name: string; step: number }; deck: string[]; last?: string; cue: Cue | null }
 
 const TICK_MS = 30
 const PROP_W = 5
@@ -103,11 +105,21 @@ const runsOf = (row: string, r: number, marks: Mark[]) => {
   }, [])
 }
 
+// Cells grouped into runs of one look, so a row is a few Texts and not one per character.
+const cellRuns = (row: Cell[]) =>
+  row.reduce<{ text: string; tint: Cell['tint']; isDim: boolean }[]>((runs, c) => {
+    const last = runs.at(-1)
+    const isDim = c.isDim === true
+    return last && last.tint === c.tint && last.isDim === isDim ? (last.text += c.ch, runs) : [...runs, { text: c.ch, tint: c.tint, isDim }]
+  }, [])
+
 const Clawd: ClientModule<Scene, Local> = (scene, surface) => {
   const { Box, Text } = surface.elements
   const isFirst = surface.state === undefined
-  const live: Local = surface.state ?? { scene, frame: 0, elapsed: 0, deck: [] }
+  const live: Local = surface.state ?? { scene, frame: 0, elapsed: 0, deck: [], cue: scene.cue }
   live.scene = scene
+  // A cue always opens on its first frame.
+  if (live.cue !== scene.cue) Object.assign(live, { cue: scene.cue, frame: 0, elapsed: 0 })
 
   if (isFirst) {
     surface.setState(live)
@@ -116,14 +128,14 @@ const Clawd: ClientModule<Scene, Local> = (scene, surface) => {
       const frames = cur.click ? CLICKS[cur.click.name]! : undefined
       if (cur.scene.isStill && !frames) return
       const elapsed = cur.elapsed + TICK_MS
-      if (elapsed < (frames ? CLICK_MS : FRAME_MS[cur.scene.mood])) return void (cur.elapsed = elapsed)
+      if (elapsed < (frames ? CLICK_MS : cur.scene.cue ? CUES[cur.scene.cue].ms : FRAME_MS[cur.scene.mood])) return void (cur.elapsed = elapsed)
       const step = (cur.click?.step ?? 0) + 1
       surface.setState({ ...cur, frame: cur.frame + 1, elapsed: 0, click: cur.click && step < frames!.length ? { ...cur.click, step } : undefined })
     })
     // Each click plays the next animation from a shuffled deck, so he never does the same one twice in a row.
     surface.onPointer(e => {
       const cur = surface.state!
-      if (e.type !== 'down' || cur.click || cur.scene.isStill) return
+      if (e.type !== 'down' || cur.click || cur.scene.isStill || cur.scene.cue) return
       const deck = cur.deck.length ? cur.deck : dealClicks(cur.last)
       const [name, ...rest] = deck
       surface.setState({ ...cur, click: { name: name!, step: 0 }, deck: rest, last: name, elapsed: 0 })
@@ -132,6 +144,18 @@ const Clawd: ClientModule<Scene, Local> = (scene, surface) => {
 
   const f = live.frame
   const body = hex(SKINS[scene.skin] ?? SKINS.classic!)
+  const cue = scene.cue ? CUES[scene.cue] : undefined
+  if (cue) {
+    const frames = cue.frames(scene)
+    const rows = cueRows(cue, frames[(scene.isStill ? cue.rest : live.frame) % frames.length]!)
+    return (
+      <Box flexDirection="column">
+        {rows.map(row => (
+          <Text>{cellRuns(row).map(run => <Text color={run.tint === undefined ? undefined : run.tint === 'body' ? body : hex(run.tint)} dimColor={run.isDim}>{run.text}</Text>)}</Text>
+        ))}
+      </Box>
+    )
+  }
   const isClick = live.click !== undefined
   const strain = !isClick && (scene.mood === 'idle' || scene.mood === 'working') && scene.strain !== 'none' ? STRAIN[scene.strain] : undefined
   const l: Look = isClick ? { ...CLICKS[live.click!.name]![live.click!.step]!, prop: [], tint: GREY } : moodLook(scene.mood, scene.activity, f)
@@ -156,6 +180,7 @@ const Clawd: ClientModule<Scene, Local> = (scene, surface) => {
           <Text>
             <Text color={hex(l.tint)}>{(l.prop[r] ?? '').padEnd(PROP_W)}</Text>
             {r === 1 && doing && <Text color={hex(doing.color)}>{doing.glyph} {doing.word}</Text>}
+            {r === 1 && doing && scene.clones > 0 && <Text color={hex(DOING.agents.color)}> ×{scene.clones}</Text>}
           </Text>
         ))}
       </Box>

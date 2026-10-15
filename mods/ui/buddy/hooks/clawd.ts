@@ -1,4 +1,4 @@
-import type { Activity, Mood, Strain } from '../types'
+import type { Activity, Cue, Mood, Strain } from '../types'
 
 // Clawd exactly as Claude Code draws him (its built-in mods guide's CLAWD_POSES): C body, E eye, . nothing.
 const CLAWD = [
@@ -77,6 +77,8 @@ const idleGesture = (f: number): Gesture => {
 // A pixel is empty (undefined) or a palette letter.
 export type Pixels = (string | undefined)[][]
 
+const blank = (): Pixels => Array.from({ length: H }, () => Array<string | undefined>(W).fill(undefined))
+
 const put = (canvas: Pixels, x: number, y: number, c: string) => {
   if (y >= 0 && y < H && x >= 0 && x < W) canvas[y]![x] = c
 }
@@ -121,7 +123,7 @@ export const draw = (m: Mood, activity: Activity, f: number, strain: Strain = 'n
 
   const ox = LEFT + (m === 'oops' ? (f % 2 === 0 ? -1 : 1) : 0)
   const oy = TOP + ((m === 'happy' || m === 'loved') && f % 2 === 1 ? 1 : m === 'asleep' ? 1 : 0)
-  const canvas: Pixels = Array.from({ length: H }, () => Array<string | undefined>(W).fill(undefined))
+  const canvas = blank()
   stamp(canvas, body.map(r => r.join('')), ox, oy)
 
   if (isWorking && act === 'laptop') {
@@ -203,6 +205,221 @@ export const draw = (m: Mood, activity: Activity, f: number, strain: Strain = 'n
   return canvas
 }
 
+// A cue replaces his whole pose: the same Clawd bent, raised or seated, with what he holds or what moves around him.
+// His row list picks which of his rows to draw (repeating one stretches him, skipping one squashes him) and bend
+// widens (1) or narrows (-1) everything above his legs. His body is always anchored to the bottom of the box.
+type Pose = { c: Pixels; ox: number; oy: number }
+const ALL_ROWS = CLAWD.map((_, i) => i)
+const BOTH = [...ARM_COLS.left, ...ARM_COLS.right]
+const pose = ({ dx = 0, dy = 0, rows = ALL_ROWS, bend = 0 }: { dx?: number; dy?: number; rows?: number[]; bend?: -1 | 0 | 1 } = {}): Pose => {
+  const base = draw('idle', 'think', 0)
+  const oy = H - rows.length + dy
+  const c = blank()
+  rows.forEach((src, i) => {
+    const row = base[TOP + src]!
+    for (let x = 0; x < W; x++) {
+      const [l, px, r] = [row[x - 1], row[x], row[x + 1]]
+      const v = src >= LEG_ROW - 1 || bend === 0 ? px : bend > 0 ? px ?? (l || r ? 'C' : undefined) : l && px && r ? px : undefined
+      if (v) put(c, x + dx, oy + i, v)
+    }
+  })
+  return { c, ox: LEFT + dx, oy }
+}
+const wipe = (c: Pixels, x: number, y: number) => {
+  if (c[y]) c[y]![x] = undefined
+}
+const eyes = ({ c, ox, oy }: Pose, how: 'shut' | 'down' | 'left' | 'right' | 'x') => {
+  for (const col of EYE_COLS) {
+    for (const row of EYE_ROWS) put(c, ox + col, oy + row, 'C')
+    if (how === 'x') stamp(c, ['E.E', '.E.', 'E.E'], ox + col - 1, oy + EYE_ROWS[0]! - 1)
+    else if (how !== 'shut') for (const row of how === 'down' ? [EYE_ROWS[1]!] : EYE_ROWS) put(c, ox + col + (how === 'left' ? -1 : how === 'right' ? 1 : 0), oy + row, 'E')
+  }
+}
+const raise = ({ c, ox, oy }: Pose, cols: number[]) => {
+  for (const col of cols) {
+    for (const row of ARM_ROWS) wipe(c, ox + col, oy + row)
+    for (const row of EYE_ROWS) put(c, ox + col, oy + row, 'C')
+  }
+}
+const tap = ({ c, ox, oy }: Pose, f: number) => {
+  for (const col of f % 2 === 0 ? LEGS.inner : LEGS.outer) wipe(c, ox + col, oy + LEG_ROW)
+}
+
+const QUESTION = ['yyy', '..y', '.y.', '...', '.y.']
+const BANG = ['r', 'r', '.', 'r']
+const SMOKE: [number, number][] = [[13, -1], [14, -2], [12, -2], [14, -1]]
+const CHECK = ['..n', 'n.n', '.n.']
+const CROSS = ['r.r', '.r.', 'r.r']
+const TALL = [0, 1, 1, 2, 3, 4, 5, 6, 7, 7, 8, 9]
+const SQUASH = [0, 2, 3, 4, 5, 7, 8, 9]
+const SQUEEZE: [number[], -1 | 0 | 1, number][] = [
+  [ALL_ROWS, 0, 0], [ALL_ROWS, 0, 1], [ALL_ROWS, 0, 1], [ALL_ROWS, -1, 1], [TALL, -1, 1], [SQUASH, 1, 1], [ALL_ROWS, -1, 1], [ALL_ROWS, 0, 0], [ALL_ROWS, 0, 0],
+]
+const DIGITS = ['yyy/y.y/y.y/y.y/yyy', '.y./yy./.y./.y./yyy', 'yyy/..y/yyy/y../yyy', 'yyy/..y/yyy/..y/yyy', 'y.y/y.y/yyy/..y/..y', 'yyy/y../yyy/..y/yyy', 'yyy/y../yyy/y.y/yyy', 'yyy/..y/..y/.y./.y.', 'yyy/y.y/yyy/y.y/yyy', 'yyy/y.y/yyy/..y/yyy']
+const AGENTS_SHOWN = 3
+const MUG = ['ww.', 'www', 'ww.']
+const PAGE_LINES = [4, 2, 5, 1, 4, 3, 5, 2]
+const CLOUD = ['..ggggggg..', '.ggggggggg.']
+const RAIN_COLS = [3, 7, 10, 15]
+const BURST = [['...', '.o.', '...'], ['.o.', 'ooo', '.o.'], ['o.o', '.o.', 'o.o'], ['o.o', '...', 'o.o']]
+const FLAG_DY = [0, 1, 1, 0, 0, -1, 1, 0, 0, 0]
+const FLAG_POLE = [0, 2, 5, 8, 10, 10, 10, 10, 10, 10]
+const FLAG_CHEER = [4, 5, 7, 8]
+const FIREWORK_DY = [0, 1, -1, 0, -1, 0, 0, -1, 0, 0, 0, 0]
+
+// One volley is a rocket that climbs three rows, then a burst that opens and fades; g counts frames since it left.
+const fire = (c: Pixels, x: number, g: number, color: string) => {
+  if (g >= 0 && g < 3) put(c, x + 1, 5 - g, color)
+  else if (g >= 3 && g < 7) stamp(c, BURST[g - 3]!.map(r => r.replaceAll('o', color)), x, 1)
+}
+
+// ms and n match the terminal's cue, rest is the frame shown when motion is off, say names it for a screen reader.
+export const PIXEL_CUES: Record<Cue, { ms: number; n: number; rest: number; say: string; art: (f: number, clones: number) => Pixels }> = {
+  perm: {
+    ms: 180, n: 6, rest: 0, say: 'waiting for you',
+    art: f => {
+      const p = pose()
+      raise(p, ARM_COLS.left)
+      tap(p, f)
+      stamp(p.c, QUESTION, p.ox + 15, f % 2)
+      return p.c
+    },
+  },
+  error: {
+    ms: 130, n: 8, rest: 6, say: 'error',
+    art: f => {
+      const p = pose({ dx: [0, 0, 1, -1, 1, 0, 0, 0][f]!, dy: f === 1 ? 1 : 0 })
+      if (f > 0) eyes(p, 'x')
+      for (const [x, y] of SMOKE.slice(0, [0, 1, 2, 3, 4, 2, 0, 0][f]!)) put(p.c, p.ox + x, p.oy + y, 'g')
+      if (f >= 4) stamp(p.c, BANG, W - 1, TOP)
+      return p.c
+    },
+  },
+  pass: {
+    ms: 140, n: 5, rest: 3, say: 'tests passed',
+    art: f => {
+      const p = pose({ dy: [1, -1, 0, 0, 0][f]! })
+      if (f > 0) {
+        raise(p, f === 1 ? ARM_COLS.right : BOTH)
+        stamp(p.c, CHECK, p.ox + 15, p.oy - 1)
+      }
+      return p.c
+    },
+  },
+  fail: {
+    ms: 140, n: 5, rest: 2, say: 'tests failed',
+    art: f => {
+      const p = pose({ dx: [0, -1, 1, -1, 0][f]!, dy: 1 })
+      eyes(p, f === 4 ? 'shut' : 'down')
+      raise(p, ARM_COLS.right)
+      stamp(p.c, CROSS, p.ox + 15, p.oy - 1)
+      return p.c
+    },
+  },
+  compact: {
+    ms: 120, n: 9, rest: 3, say: 'compacting',
+    art: f => {
+      const [rows, bend, gap] = SQUEEZE[f]!
+      const { c } = pose({ rows, bend })
+      stamp(c, ['b.', 'bb', 'b.'], gap, 8)
+      stamp(c, ['.b', 'bb', '.b'], W - 2 - gap, 8)
+      return c
+    },
+  },
+  limit: {
+    ms: 300, n: 8, rest: 3, say: 'rate limited',
+    art: f => {
+      const p = pose({ rows: ALL_ROWS.slice(0, LEG_ROW) })
+      eyes(p, f % 2 ? 'shut' : 'down')
+      stamp(p.c, ['ggg', `g${f < 5 ? 'y' : '.'}g`, f < 7 ? '.y.' : '.g.', `g${f >= 3 ? 'y' : '.'}g`, 'ggg'], p.ox + 15, 1)
+      return p.c
+    },
+  },
+  agents: {
+    ms: 200, n: 4, rest: 1, say: 'subagents running',
+    art: (f, clones) => {
+      const p = pose()
+      if (f === 1) raise(p, BOTH)
+      for (let i = 0; i < Math.min(clones, AGENTS_SHOWN); i++) stamp(p.c, [MINI[0]!, (f + i) % 2 ? '.C.' : MINI[1]!], p.ox + 3 + i * 4, 0)
+      stamp(p.c, DIGITS[Math.min(clones, 9)]!.split('/'), p.ox + 15, 1)
+      return p.c
+    },
+  },
+  coffee: {
+    ms: 250, n: 8, rest: 0, say: 'on a long tool run',
+    art: f => {
+      const p = pose()
+      const lift = [0, 0, 1, 2, 2, 1, 0, 0][f]!
+      if (lift === 2) eyes(p, 'shut')
+      const top = p.oy + 4 - lift
+      stamp(p.c, MUG, p.ox + 15, top)
+      put(p.c, p.ox + 15 + (f % 2), top - 1, 'g')
+      put(p.c, p.ox + 16 - (f % 2), top - 2, 'g')
+      return p.c
+    },
+  },
+  bigfile: {
+    ms: 120, n: 12, rest: 0, say: 'reading a big file',
+    art: f => {
+      const p = pose()
+      const [first, step] = [Math.floor(f / 4), f % 4]
+      eyes(p, step === 3 ? 'left' : 'right')
+      const [a, b] = [0, 1].map(i => PAGE_LINES[(first + i) % PAGE_LINES.length]!) as [number, number]
+      const done = step < 3 ? Math.ceil((b * (step + 1)) / 3) : b
+      const line = (len: number, read = 0) => `W${'n'.repeat(read)}${'G'.repeat(len - read)}${'W'.repeat(5 - len)}W`
+      stamp(p.c, ['WWWWWWW', line(a), 'WWWWWWW', line(b, done), 'WWWWWWW'], p.ox + 5, p.oy + 5)
+      return p.c
+    },
+  },
+  offline: {
+    ms: 160, n: 8, rest: 0, say: 'offline',
+    art: f => {
+      const p = pose()
+      if (f % 4 === 3) eyes(p, 'shut')
+      stamp(p.c, CLOUD, p.ox + 4, 0)
+      RAIN_COLS.forEach((x, k) => put(p.c, p.ox + x, p.oy + ((f + k) % 4), 'b'))
+      if (f === 6) stamp(p.c, ['.y', 'yy', 'y.'], p.ox + 7, p.oy)
+      return p.c
+    },
+  },
+  flag: {
+    ms: 130, n: 10, rest: 9, say: 'planting a flag',
+    art: f => {
+      const p = pose({ dy: FLAG_DY[f]! })
+      if (FLAG_CHEER.includes(f)) raise(p, BOTH)
+      for (let i = 0; i < FLAG_POLE[f]!; i++) put(p.c, W - 1, H - 1 - i, 'w')
+      if (FLAG_POLE[f] === 10) stamp(p.c, ['rr', 'rr'], W - 3, TOP)
+      return p.c
+    },
+  },
+  hello: {
+    ms: 100, n: 18, rest: 12, say: 'saying hello',
+    art: f => {
+      const p = pose({ dx: f < 5 ? -1 : 0 })
+      if (f < 10) {
+        tap(p, f)
+        eyes(p, 'right')
+      } else if (f < 16) {
+        const isWave = f % 2 === 0
+        if (isWave) raise(p, ARM_COLS.right)
+        stamp(p.c, ['WWW', `W${isWave ? 'y' : 'G'}W`, 'WWW'], p.ox + 15, 0)
+      }
+      return p.c
+    },
+  },
+  fireworks: {
+    ms: 110, n: 12, rest: 5, say: 'celebrating',
+    art: f => {
+      const p = pose({ dy: FIREWORK_DY[f]! })
+      if (f > 1 && f < 11) raise(p, BOTH)
+      const isSecond = f >= 8
+      fire(p.c, W - 3, isSecond ? f - 8 : f, isSecond ? 'b' : 'y')
+      fire(p.c, 0, isSecond ? f - 8 : f - 1, isSecond ? 'n' : 'r')
+      return p.c
+    },
+  },
+}
+
 export const colorOf = (c: string | undefined, body: number) => (c === undefined ? undefined : c === 'C' ? body : PALETTE[c])
 
 export const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`
@@ -224,16 +441,18 @@ const rectsOf = (px: Pixels, body: number) =>
 
 // The desktop's Clawd is one Svg that animates itself: each distinct frame is a group shown for its slice of the
 // loop, so the page never swaps the picture. A click on him plays the loved jump with a heart, all inside the Svg.
-export const toSvg = (m: Mood, act: Activity, body: number, isStill: boolean, strain: Strain = 'none') => {
-  const n = isStill ? 1 : LOOP[m]
-  const frames = Array.from({ length: n }, (_, f) => rectsOf(draw(m, act, f, strain), body))
+// A cue loops its own frames in place of his mood's; with motion off it holds its rest frame.
+export const toSvg = (m: Mood, act: Activity, body: number, isStill: boolean, strain: Strain = 'none', cue: { name: Cue; clones: number } | null = null) => {
+  const spec = cue && PIXEL_CUES[cue.name]
+  const n = isStill ? 1 : spec?.n ?? LOOP[m]
+  const frames = Array.from({ length: n }, (_, f) => rectsOf(spec ? spec.art(isStill ? spec.rest : f, cue!.clones) : draw(m, act, f, strain), body))
   const spans: { rects: string; from: number; to: number }[] = []
   frames.forEach((rects, f) => {
     const last = spans.at(-1)
     if (last?.rects === rects) last.to = f + 1
     else spans.push({ rects, from: f, to: f + 1 })
   })
-  const dur = (n * FRAME_MS[m]) / 1000
+  const dur = (n * (spec?.ms ?? FRAME_MS[m])) / 1000
   const groups = spans.length === 1
     ? `<g>${spans[0]!.rects}</g>`
     : spans.map(s => `<g opacity="0">${s.rects}<animate attributeName="opacity" calcMode="discrete" dur="${dur}s" repeatCount="indefinite" keyTimes="0;${s.from / n};${s.to / n}" values="0;1;0"/></g>`).join('')

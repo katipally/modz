@@ -1,5 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { RenderElement } from 'claude-code'
+import { PIXEL_CUES } from '../hooks/clawd'
 import { FEET } from '../hooks/clawd-moves'
 
 const PROPS = { hasSurvey: false, isWorking: false, maxRows: 8, bodyColumns: 100, scroll: {} as never, view: {} as never }
@@ -50,4 +51,46 @@ test('pacing moves every leg', () => {
   const legs = [...FEET.stand].flatMap((c, i) => (c === ' ' ? [] : [i]))
   expect(legs.length).toBe(4)
   for (const i of legs) expect(FEET.step[i]).not.toBe(FEET.stand[i])
+})
+
+test('off the terminal a cue takes over the Svg with the terminal\'s priority, and holds still with motion off', async ($, on) => {
+  mock.clock(on)
+  mock.store(on)
+  let reduced = false
+  let outcome: object = { result: 'ok' }
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('session.messages', () => ({ value: [{ role: 'user', text: 'x', toolUses: [] }] }) as never)
+  on('settings.read', () => ({ value: { prefersReducedMotion: reduced } }) as never)
+  on('command.register', (_, e) => ({ value: { command: e.name } }) as never)
+  on('tool.check', () => ({ decision: 'ask' }) as never)
+  on('tool.call', () => outcome as never)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true } as never)
+
+  const svg = async () => {
+    const ui = await $.ui.mount({ plugin: 'buddy', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+    const found = (await ui.find({ type: 'Svg' }))?.props ?? {}
+    await ui.unmount()
+    return found
+  }
+
+  expect(String((await svg()).alt)).toBe('Clawd, idle')
+  outcome = { isError: true, result: 'boom' }
+  await $.tool.call({ tool: 'Read', file_path: '/missing' } as never)
+  const error = await svg()
+  expect(error.alt).toBe(`Clawd, ${PIXEL_CUES.error.say}`)
+  expect(String(error.source)).toContain(`dur="${(PIXEL_CUES.error.n * PIXEL_CUES.error.ms) / 1000}s"`)
+  expect(String(error.source)).toContain('fill="#b8bcc4"')
+  expect(String(error.source).length).toBeLessThan(131072)
+  expect([error.width, error.height]).toEqual([76, 48])
+
+  // Waiting on you outranks the error that is still playing.
+  await $.tool.check({ tool: 'Bash', input: { command: 'rm x' }, tool_use_id: 'u1' } as never)
+  expect((await svg()).alt).toBe(`Clawd, ${PIXEL_CUES.perm.say}`)
+
+  reduced = true
+  const still = await svg()
+  expect(still.isInteractive).toBe(false)
+  expect(String(still.source)).not.toContain('<animate')
+  expect(String(still.source)).toContain('fill="#f5c542"')
 })
