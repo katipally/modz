@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 import type { RenderElement, RenderNode } from 'claude-code'
 
-import { draw, H, PALETTE, PIXEL_CUES, W } from '../hooks/clawd'
+import { draw, H, LOOP, PALETTE, PIXEL_CUES, toSvg, W } from '../hooks/clawd'
 import { CUES } from '../hooks/clawd-cues'
 import type { Cue } from '../types'
 import { CLICKS, COLS, dealClicks, place } from '../hooks/clawd-moves'
@@ -164,7 +164,8 @@ describe('buddy\'s terminal motion and strain', () => {
         seen.push(await sprite())
       }
       played.push(seen.join('|'))
-      expect(seen.at(-1)).toMatch(/\/  ▘▘ ▝▝  $/)
+      // Back on his feet, or in the idle hop that may come around by then.
+      expect(seen.at(-1)).toMatch(/\/(  ▘▘ ▝▝  |   ▁▁▁   )$/)
     }
     expect(new Set(played).size).toBe(played.length)
     await ui.unmount()
@@ -182,7 +183,7 @@ describe('buddy\'s terminal motion and strain', () => {
       release()
       await call
       // A test run's verdict plays over him for a moment; let it finish before the next tool.
-      await clock.advance(1000)
+      await clock.advance(2000)
       return text
     }
     expect(await doing('Bash', { command: 'npm test' })).toContain('◔ testing')
@@ -278,6 +279,37 @@ describe('buddy\'s pixel Clawd (desktop, VS Code, mobile)', () => {
       }
       expect(new Set(frames.map(f => f.map(r => r.join('')).join('/'))).size, `${name} moves`).toBeGreaterThan(1)
       expect([spec.ms, spec.n, spec.rest], name).toEqual([CUES[name].ms, CUES[name].frames({ clones: 3, hash: '' }).length, CUES[name].rest])
+    }
+  })
+
+  test('fireworks burst above and beside him and never over his head', () => {
+    const sparks = new Set(['y', 'r', 'b', 'n', 'W'])
+    for (let f = 0; f < PIXEL_CUES.fireworks.n; f++) {
+      const px = PIXEL_CUES.fireworks.art(f, 0)
+      const top = px.findIndex(row => row.includes('C'))
+      for (const row of px.slice(top, top + 8)) {
+        for (const c of row.slice(3, 16)) expect(c === 'C' || c === 'E', `frame ${f} head`).toBe(true)
+      }
+      if (f > 0) expect(px.flat().filter(c => c !== undefined && sparks.has(c)).length, `frame ${f} sparks`).toBeGreaterThan(2)
+    }
+    expect(Math.max(...Array.from({ length: PIXEL_CUES.fireworks.n }, (_, f) => PIXEL_CUES.fireworks.art(f, 0).flat().filter(c => c === 'y').length))).toBeGreaterThanOrEqual(8)
+  })
+
+  test('idle and drowsy Clawd vary inside the box, hold still at the first beat and stay out of the way of motion off', () => {
+    const frames = (m: 'idle' | 'drowsy') => Array.from({ length: LOOP[m] * 2 }, (_, f) => draw(m, 'think', f))
+    for (const m of ['idle', 'drowsy'] as const) {
+      for (const px of frames(m)) {
+        expect(px.length).toBe(H)
+        for (const row of px) expect(row.length).toBe(W)
+      }
+    }
+    expect(new Set(frames('idle').map(px => JSON.stringify(px))).size).toBeGreaterThan(6)
+    expect(draw('idle', 'think', 0)).toEqual(draw('idle', 'think', LOOP.idle))
+    expect(draw('drowsy', 'think', 0)).toEqual(draw('drowsy', 'think', LOOP.drowsy))
+    for (const m of ['idle', 'drowsy'] as const) {
+      const still = toSvg(m, 'think', 0xd77757, true)
+      expect(still).not.toContain('<animate ')
+      expect(still).toContain('crispEdges')
     }
   })
 

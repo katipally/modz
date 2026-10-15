@@ -1,4 +1,4 @@
-export type Mood = 'idle' | 'working' | 'happy' | 'oops' | 'asleep' | 'loved'
+export type Mood = 'idle' | 'drowsy' | 'working' | 'happy' | 'oops' | 'asleep' | 'loved'
 
 export type Activity =
   | 'think' | 'laptop' | 'hammer' | 'magnify' | 'notes' | 'web' | 'agents'

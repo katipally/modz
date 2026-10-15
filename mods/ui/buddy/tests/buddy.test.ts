@@ -33,6 +33,7 @@ test('off the terminal Clawd is one fixed-size Svg that animates and reacts to c
   expect(source).toContain('fill="#d77757"')
   expect(source).toContain('repeatCount="indefinite"')
   expect(source).toContain('begin="hit.click"')
+  expect(source).toContain('shape-rendering="crispEdges"')
 
   await $.turn.start({ text: 'hi', turnId: 't' } as never)
   await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 'x', agentId: 'sub', reason: 'answer' } as never)
@@ -45,6 +46,7 @@ test('off the terminal Clawd is one fixed-size Svg that animates and reacts to c
   const still = await svg()
   expect(still.isInteractive).toBe(false)
   expect(String(still.source)).not.toContain('<animate')
+  expect(String(still.source)).toContain('shape-rendering="crispEdges"')
 })
 
 test('pacing moves every leg', () => {

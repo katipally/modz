@@ -64,8 +64,8 @@ Clawd acts out what the agent is doing:
 | paces, looks around, a bubble rises | thinking, no tool running |
 | hops with arms up, sparks fly | a turn finished |
 | eyes shut, flails, a red `!` flashes | a turn was stopped or errored |
-| sits down, `z` rises | 2 minutes with nothing happening |
-| blinks, glances both ways, waves hello | idle |
+| stretches, yawns, then sits down and `z` rises | 2 minutes with nothing happening |
+| blinks, wiggles an arm, glances both ways, hops, waves hello | idle |
 
 **Click him** and he plays one of 14 animations: jump, look, spin, peekaboo, drop, wink, boop, tap, sneeze, turn, coin-hop, skip, waddle or peek. They come from a shuffled deck, so every one plays before any repeats and never the same one twice in a row. Clicks during an animation are ignored. (Terminal only; the pixel version keeps one hop.)
 

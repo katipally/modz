@@ -53,16 +53,16 @@ const ERROR = [
   dead({}, [[t('  ◌', GREY)], [t(' !', RED)], '']),
   dead({}, ['', [t(' !', RED)], '']),
   dead({}, ['', [t(' !', RED)], '']),
+  dead({}, ['', [t(' !', RED)], '']),
 ]
 
 // Test verdict: a hop and a check, or a droop and a cross, on a little sign.
 const sign = (mark: string, tint: number): Col => [[t(' ┌─┐', GREY)], [t(' │', GREY), t(mark, tint), t('│', GREY)], [t(' └┬┘', GREY)]]
 const SLUMP: Sprite = [HEAD.down, BODY.rest, FEET.stand]
-const PASS = [crouch(STAND), frame(AIR, { right: sign('✔', GREEN) }), ...Array.from({ length: 3 }, () => frame(CHEER, { right: sign('✔', GREEN) }))]
-const FAIL = [
-  frame(SLUMP, { right: sign('✘', RED) }), frame(SLUMP, { x: -1, right: sign('✘', RED) }), frame(SLUMP, { x: 1, right: sign('✘', RED) }),
-  frame(SLUMP, { x: -1, right: sign('✘', RED) }), frame([HEAD.shut, BODY.rest, FEET.stand], { right: sign('✘', RED) }),
-]
+const ticked = (rows: Sprite) => frame(rows, { right: sign('✔', GREEN) })
+const PASS = [crouch(STAND), ticked(AIR), ticked(CHEER), ticked(CHEER), ticked(AIR), ticked(CHEER), ticked(CHEER), ticked(CHEER)]
+const crossed = (rows: Sprite, x = 0) => frame(rows, { x, right: sign('✘', RED) })
+const FAIL = [crossed(SLUMP), crossed(SLUMP, -1), crossed(SLUMP, 1), crossed(SLUMP, -1), crossed(SLUMP, 1), crossed(SHUT), crossed(SHUT), crossed(SHUT)]
 
 // Compacting: arrows close in on him, he pinches tall, then springs wide.
 const PINCH: Sprite = ['  ▐▛█▜▌  ', ' ▝▜███▛▘ ', '  ▘▘ ▝▝  ']
@@ -108,7 +108,7 @@ const scan = (f: number) => {
     right: [[t(`  ${bar(0)}`, DIM)], [t('▸ ', MINT), t(current.slice(0, read), MINT), t(current.slice(read), DIM)], [t(`  ${bar(2)}`, DIM)]],
   })
 }
-const BIG_FILE = Array.from({ length: 12 }, (_, f) => scan(f))
+const BIG_FILE = Array.from({ length: 24 }, (_, f) => scan(f))
 
 // Offline: a private rain cloud with a lightning flash.
 const RAIN = ['  ╷ ╷  ', ' ╷ ╷ ╷ ', '  ╵ ╵  ', ' ╵ ╵ ╵ ']
@@ -161,9 +161,9 @@ const FIREWORKS = [
 // `ms` is one frame, `lw` and `rw` the width of the columns, `rest` the frame shown when motion is off.
 export const CUES: Record<Cue, CueDef> = {
   perm: { ms: 180, lw: 0, rw: 8, tint: PINK, rest: 0, frames: () => PERM },
-  error: { ms: 130, lw: 0, rw: 8, tint: GREY, rest: 6, frames: () => ERROR },
-  pass: { ms: 140, lw: 0, rw: 8, tint: GREY, rest: 3, frames: () => PASS },
-  fail: { ms: 140, lw: 0, rw: 8, tint: GREY, rest: 2, frames: () => FAIL },
+  error: { ms: 170, lw: 0, rw: 8, tint: GREY, rest: 6, frames: () => ERROR },
+  pass: { ms: 190, lw: 0, rw: 8, tint: GREY, rest: 3, frames: () => PASS },
+  fail: { ms: 190, lw: 0, rw: 8, tint: GREY, rest: 2, frames: () => FAIL },
   compact: { ms: 120, lw: 4, rw: 4, tint: CYAN, rest: 3, frames: () => COMPACT },
   limit: { ms: 300, lw: 0, rw: 5, tint: AMBER, rest: 3, frames: () => LIMIT },
   agents: {
@@ -171,11 +171,11 @@ export const CUES: Record<Cue, CueDef> = {
     frames: ({ clones: count }) => [false, true, false, false].map(isPop => clones(Math.min(count, AGENTS_SHOWN), count, isPop)),
   },
   coffee: { ms: 250, lw: 0, rw: 7, tint: GREY, rest: 0, frames: () => COFFEE },
-  bigfile: { ms: 120, lw: 0, rw: 10, tint: DIM, rest: 0, frames: () => BIG_FILE },
+  bigfile: { ms: 125, lw: 0, rw: 10, tint: DIM, rest: 0, frames: () => BIG_FILE },
   offline: { ms: 160, lw: 0, rw: 8, tint: CLOUD, rest: 0, frames: () => OFFLINE },
-  flag: { ms: 130, lw: 0, rw: 10, tint: ORANGE, rest: 9, frames: ({ hash }) => flag(hash) },
+  flag: { ms: 150, lw: 0, rw: 10, tint: ORANGE, rest: 9, frames: ({ hash }) => flag(hash) },
   hello: { ms: 100, lw: 0, rw: 6, tint: AMBER, rest: 12, frames: () => HELLO },
-  fireworks: { ms: 110, lw: 5, rw: 9, tint: AMBER, rest: 5, frames: () => FIREWORKS },
+  fireworks: { ms: 130, lw: 5, rw: 9, tint: AMBER, rest: 5, frames: () => FIREWORKS },
 }
 
 // A one-shot plays its frames once; these stay up for longer, because what they say outlasts one pass.

@@ -23,12 +23,16 @@ describe('buddy cues in the terminal', () => {
   let compactGate: Promise<void> = Promise.resolve()
   let toolGate: Promise<void> = Promise.resolve()
   let n = 0
+  let listed: { id: string; status: string }[] | undefined
+  let listCalls = 0
   const setup = async ($: any, on: any, isLaunch = false) => {
     result = { result: 'ok' }
     toolGate = Promise.resolve()
     verdict = 'allow'
     compactGate = Promise.resolve()
     n = 0
+    listed = undefined
+    listCalls = 0
     clock = mock.clock(on)
     mock.store(on)
     on('ui.render', ($: any, e: any) => h($.ui.resolve(e).Box, {}) as RenderElement)
@@ -48,6 +52,11 @@ describe('buddy cues in the terminal', () => {
       return { messages: [MESSAGE] } as never
     })
     on('agent.spawn', () => ({ model: 'm', agentId: `a${++n}` }))
+    on('agent.list', () => {
+      listCalls++
+      if (!listed) throw new Error('not listed')
+      return { value: listed } as never
+    })
     on('tool.check', () => ({ decision: verdict }) as never)
     on('tool.call', async () => {
       await toolGate
@@ -91,7 +100,7 @@ describe('buddy cues in the terminal', () => {
     await $.turn.start({ text: 'hi', turnId: 't' } as never)
     result = { isError: true, result: 'boom', text: 'boom' }
     await $.tool.call({ tool: 'Read', file_path: '/missing' } as never)
-    expect(await seen(130 * 5)).toContain('!')
+    expect(await seen(170 * 5)).toContain('!')
     expect(await seen()).toContain('x')
     expect(await seen(playMs('error'))).not.toContain('!')
 
@@ -99,7 +108,7 @@ describe('buddy cues in the terminal', () => {
     await $.tool.call({ tool: 'Read', file_path: '/a' } as never)
     result = { isError: true, result: 'boom' }
     await $.tool.call({ tool: 'Read', file_path: '/a', agentId: 'sub' } as never)
-    expect(await seen(130 * 5)).not.toContain('!')
+    expect(await seen(170 * 5)).not.toContain('!')
     await ui.unmount()
   })
 
@@ -121,7 +130,7 @@ describe('buddy cues in the terminal', () => {
 
     result = { isError: true, result: 'Exit code 2' }
     await $.tool.call({ tool: 'Bash', command: 'ls /nope' } as never)
-    expect(await seen(130 * 5)).not.toContain('✘')
+    expect(await seen(170 * 5)).not.toContain('✘')
     expect(await seen()).toContain('!')
     await seen(playMs('error'))
 
@@ -158,7 +167,7 @@ describe('buddy cues in the terminal', () => {
 
     result = { isError: true, result: 'boom' }
     await $.tool.call({ tool: 'Read', file_path: '/x' } as never)
-    let text = await seen(130 * 5)
+    let text = await seen(170 * 5)
     expect(text).toContain('!')
     expect(text).not.toContain('✔')
 
@@ -287,6 +296,40 @@ describe('buddy cues in the terminal', () => {
     expect(await seen()).toContain('▟▙')
     await $.session.end({ reason: 'clear' } as never)
     expect(await seen()).not.toContain('▟▙')
+    await ui.unmount()
+  })
+
+  test('a subagent the engine no longer lists as live is dropped without its turn.complete, and nothing polls when none runs', async ($, on) => {
+    const { ui, seen } = await setup($, on)
+    listed = [{ id: 'a1', status: 'running' }, { id: 'a2', status: 'waiting' }]
+    await $.agent.spawn(SPAWN)
+    await $.agent.spawn(SPAWN)
+    expect(await seen()).toContain('×2')
+
+    listed = [{ id: 'a1', status: 'running' }]
+    expect(await seen(15_000)).toContain('×1')
+    listed = [{ id: 'a1', status: 'killed' }]
+    expect(await seen(15_000)).not.toContain('▟▙')
+
+    const polled = listCalls
+    await seen(60_000)
+    expect(listCalls).toBe(polled)
+    await ui.unmount()
+  })
+
+  test('a failed listing keeps the subagents it could not check', async ($, on) => {
+    const { ui, seen } = await setup($, on)
+    await $.agent.spawn(SPAWN)
+    expect(await seen(30_000)).toContain('×1')
+    await ui.unmount()
+  })
+
+  test('a long idle yawns before he dozes off', async ($, on) => {
+    const { ui, seen } = await setup($, on)
+    expect(await seen(116_000)).not.toContain('aah')
+    await seen(400)
+    expect(await seen(1000)).toContain('aah')
+    expect(await seen(3600)).toMatch(/[zZ]/)
     await ui.unmount()
   })
 

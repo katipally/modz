@@ -93,7 +93,7 @@ Generated from `CLICKS` and `CLICK_MS`. A new key in `CLICKS` appears here after
 
 ### look
 
-12 frames at 70 ms, loop 840 ms.
+16 frames at 70 ms, loop 1120 ms.
 
 <img src="sheets/term-click-look.svg" alt="look animation">
 
@@ -117,7 +117,7 @@ Generated from `CLICKS` and `CLICK_MS`. A new key in `CLICKS` appears here after
 
 ### drop
 
-9 frames at 70 ms, loop 630 ms.
+12 frames at 70 ms, loop 840 ms.
 
 <img src="sheets/term-click-drop.svg" alt="drop animation">
 
@@ -125,7 +125,7 @@ Generated from `CLICKS` and `CLICK_MS`. A new key in `CLICKS` appears here after
 
 ### wink
 
-6 frames at 70 ms, loop 420 ms.
+14 frames at 70 ms, loop 980 ms.
 
 <img src="sheets/term-click-wink.svg" alt="wink animation">
 
@@ -133,7 +133,7 @@ Generated from `CLICKS` and `CLICK_MS`. A new key in `CLICKS` appears here after
 
 ### boop
 
-11 frames at 70 ms, loop 770 ms.
+13 frames at 70 ms, loop 910 ms.
 
 <img src="sheets/term-click-boop.svg" alt="boop animation">
 
@@ -165,7 +165,7 @@ Generated from `CLICKS` and `CLICK_MS`. A new key in `CLICKS` appears here after
 
 ### coin-hop
 
-12 frames at 70 ms, loop 840 ms.
+14 frames at 70 ms, loop 980 ms.
 
 <img src="sheets/term-click-coin-hop.svg" alt="coin-hop animation">
 
@@ -235,7 +235,7 @@ If several apply, hot wins, then slow, then cold.
 
 Desktop, VS Code and mobile draw a pixel Clawd (`draw` in `hooks/clawd.ts`): 19 by 12 pixels, `C` body, `E` eye, one palette letter per prop color. Drawn here at 6x on a dark card, in the classic skin. The live version is one self-animating SVG that also plays a loved hop on click; that click reaction is not generated.
 
-Moods come from `FRAME_MS` and `LOOP`; the mood follows the turn (working while a turn runs, happy or oops for a moment after, asleep after 2 minutes idle). The pixel Clawd has one prop per kind of tool, and the newer activities borrow the closest one (listed under each prop).
+Moods come from `FRAME_MS` and `LOOP`; the mood follows the turn (working while a turn runs, happy or oops for a moment after, a yawn and then asleep after 2 minutes idle). The pixel Clawd has one prop per kind of tool, and the newer activities borrow the closest one (listed under each prop).
 
 <!-- pixel:start -->
 ### Moods
@@ -247,6 +247,14 @@ Moods come from `FRAME_MS` and `LOOP`; the mood follows the turn (working while 
 <img src="sheets/pixel-idle.svg" alt="idle animation">
 
 <img src="sheets/pixel-idle-sheet.svg" alt="idle frames">
+
+#### drowsy
+
+8 frames at 450 ms, loop 3600 ms.
+
+<img src="sheets/pixel-drowsy.svg" alt="drowsy animation">
+
+<img src="sheets/pixel-drowsy-sheet.svg" alt="drowsy frames">
 
 #### working
 
@@ -438,7 +446,7 @@ Terminal: 6 frames at 180 ms, loop 1080 ms. Pixel: 6 frames at 180 ms, loop 1080
 
 **Trigger:** A main-agent tool result is an error, or the tool threw, and it was not a test run, a denial or a background start. Plays once.
 
-Terminal: 8 frames at 130 ms, loop 1040 ms. Pixel: 8 frames at 130 ms, loop 1040 ms.
+Terminal: 9 frames at 170 ms, loop 1530 ms. Pixel: 9 frames at 170 ms, loop 1530 ms.
 
 **Terminal**
 
@@ -456,7 +464,7 @@ Terminal: 8 frames at 130 ms, loop 1040 ms. Pixel: 8 frames at 130 ms, loop 1040
 
 **Trigger:** A test command succeeds: `npm`, `pnpm`, `yarn` or `bun` `test`, `pytest`, `jest`, `vitest`, `mocha`, `phpunit`, `rspec`, `go`, `cargo`, `mvn`, `gradle`, `dotnet`, `deno`, `swift` or `flutter` `test`, `claude plugin test`. Plays once.
 
-Terminal: 5 frames at 140 ms, loop 700 ms. Pixel: 5 frames at 140 ms, loop 700 ms.
+Terminal: 8 frames at 190 ms, loop 1520 ms. Pixel: 8 frames at 190 ms, loop 1520 ms.
 
 **Terminal**
 
@@ -474,7 +482,7 @@ Terminal: 5 frames at 140 ms, loop 700 ms. Pixel: 5 frames at 140 ms, loop 700 m
 
 **Trigger:** The same test commands fail. Plays once.
 
-Terminal: 5 frames at 140 ms, loop 700 ms. Pixel: 5 frames at 140 ms, loop 700 ms.
+Terminal: 8 frames at 190 ms, loop 1520 ms. Pixel: 8 frames at 190 ms, loop 1520 ms.
 
 **Terminal**
 
@@ -564,7 +572,7 @@ Terminal: 8 frames at 250 ms, loop 2000 ms. Pixel: 8 frames at 250 ms, loop 2000
 
 **Trigger:** A `Read` returns 500 or more lines. Stays up for a few seconds.
 
-Terminal: 12 frames at 120 ms, loop 1440 ms. Held for 3000 ms. Pixel: 12 frames at 120 ms, loop 1440 ms.
+Terminal: 24 frames at 125 ms, loop 3000 ms. Pixel: 24 frames at 125 ms, loop 3000 ms.
 
 **Terminal**
 
@@ -600,7 +608,7 @@ Terminal: 8 frames at 160 ms, loop 1280 ms. Held for 20000 ms. Pixel: 8 frames a
 
 **Trigger:** A `git commit`, `git push` or `gh pr create` succeeds (not `--dry-run`). A commit shows its short hash. Plays once.
 
-Terminal: 10 frames at 130 ms, loop 1300 ms. Pixel: 10 frames at 130 ms, loop 1300 ms.
+Terminal: 10 frames at 150 ms, loop 1500 ms. Pixel: 10 frames at 150 ms, loop 1500 ms.
 
 **Terminal**
 
@@ -636,7 +644,7 @@ Terminal: 18 frames at 100 ms, loop 1800 ms. Pixel: 18 frames at 100 ms, loop 18
 
 **Trigger:** A main turn ends with an answer after 5 minutes or more. Plays once.
 
-Terminal: 12 frames at 110 ms, loop 1320 ms. Pixel: 12 frames at 110 ms, loop 1320 ms.
+Terminal: 12 frames at 130 ms, loop 1560 ms. Pixel: 12 frames at 130 ms, loop 1560 ms.
 
 **Terminal**
 

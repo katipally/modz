@@ -1,8 +1,8 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, SessionContextUsage, SessionRateLimit, Timer } from 'claude-code'
+import type { AgentStatus, Register, BoxProps, ElementConstructor, EngineInterface, RenderElement, RenderNode, SessionContextUsage, SessionRateLimit, Timer } from 'claude-code'
 
 import type { Activity, Cue, Mood, Playing, Signals, Strain } from '../types'
-import { H, PIXEL_CUES, PX, SKINS, toSvg, W } from './clawd'
+import { FRAME_MS, H, LOOP, PIXEL_CUES, PX, SKINS, toSvg, W } from './clawd'
 import { playMs } from './clawd-cues'
 
 // Which prop Clawd picks up for which tool the main agent runs; any other tool keeps him thinking.
@@ -33,9 +33,18 @@ const BASH_JOBS: [RegExp, Activity][] = [
 ]
 const activityOf = (tool: string, command: string): Activity | undefined =>
   tool === 'Bash' ? BASH_JOBS.find(([re]) => re.test(command))?.[1] ?? 'laptop' : tool.startsWith('mcp__') ? 'mcp' : TOOL_PROPS[tool]
-// Moods that play for a while after a turn and then settle back to idle.
-const SETTLE_MS: Partial<Record<Mood, number>> = { happy: 2400, oops: 1200 }
 const ASLEEP_AFTER_MS = 120_000
+const DROWSY_MS = LOOP.drowsy * FRAME_MS.drowsy
+// Where each mood goes on its own and after how long: a turn's mood settles to idle, a long idle yawns and then dozes.
+const SETTLE: Partial<Record<Mood, [Mood, number]>> = {
+  happy: ['idle', 2400],
+  oops: ['idle', 1200],
+  idle: ['drowsy', ASLEEP_AFTER_MS - DROWSY_MS],
+  drowsy: ['asleep', DROWSY_MS],
+}
+// A subagent whose turn.complete never comes is dropped once the engine stops listing it as live.
+const AGENT_SWEEP_MS = 15_000
+const LIVE: AgentStatus[] = ['pending', 'running', 'waiting']
 // He sweats from 85% of any limit, checks a clock when one tool has run SLOW_MS and sips coffee at LONG_MS.
 const HOT_PERCENT = 85
 const SLOW_MS = 10_000
@@ -118,8 +127,22 @@ let settle: Timer | undefined
 const become = async ($: EngineInterface, next: Mood) => {
   settle?.cancel()
   await update($, mood, () => next)
-  const after = next === 'idle' ? ASLEEP_AFTER_MS : SETTLE_MS[next]
-  if (after !== undefined) settle = $.clock.after(after, () => void become($, next === 'idle' ? 'asleep' : 'idle'))
+  const step = SETTLE[next]
+  if (step) settle = $.clock.after(step[1], () => void become($, step[0]))
+}
+
+// The tracked subagents change only here, so the sweep runs exactly while there are some.
+let sweep: Timer | undefined
+const setAgents = async ($: EngineInterface, change: (ids: string[]) => string[]) => {
+  await update($, signals, s => ({ ...s, agents: change(s.agents) }))
+  const { agents } = await read($, signals)
+  if (agents.length === 0) {
+    sweep?.cancel()
+    sweep = undefined
+  } else sweep ??= $.clock.every(AGENT_SWEEP_MS, async () => {
+    const live = await $.agent.list().then(list => new Set(list.filter(a => LIVE.includes(a.status)).map(a => a.id)), () => undefined)
+    if (live) await setAgents($, ids => ids.filter(id => live.has(id)))
+  })
 }
 
 // A one-shot cue ends itself after its frames, and only one more urgent than the one playing may cut in.
@@ -176,7 +199,10 @@ export const register: Register = on => {
   })
 
   on('session.end', async ($, e, next) => {
-    if (e.reason === 'clear' || e.reason === 'resume') await update($, signals, s => ({ ...s, steps: 0, waiting: [], agents: [] }))
+    if (e.reason === 'clear' || e.reason === 'resume') {
+      await update($, signals, s => ({ ...s, steps: 0, waiting: [] }))
+      await setAgents($, () => [])
+    }
     return next(e)
   })
 
@@ -217,7 +243,7 @@ export const register: Register = on => {
 
   on('agent.spawn', async ($, e, next) => {
     const ran = await next(e)
-    if (ran.agentId && e.parentAgentId === undefined && !e.workflow) await update($, signals, s => ({ ...s, agents: [...s.agents, ran.agentId!] }))
+    if (ran.agentId && e.parentAgentId === undefined && !e.workflow) await setAgents($, ids => [...ids, ran.agentId!])
     return ran
   }).catch(($, e, next) => next(e))
 
@@ -272,7 +298,7 @@ export const register: Register = on => {
         if (isBig) await play($, 'fireworks')
       }
     } else if ((await read($, signals)).agents.includes(e.agentId)) {
-      await update($, signals, s => ({ ...s, agents: s.agents.filter(id => id !== e.agentId) }))
+      await setAgents($, ids => ids.filter(id => id !== e.agentId))
       if ((await read($, signals)).agents.length === 0 && (await read($, mood)) !== 'working') await become($, moodAfter(e))
     }
     return next(e)

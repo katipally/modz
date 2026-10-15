@@ -120,7 +120,9 @@ const family = ({ id, kind, label, frames, ms, w, h, art, scale = 1, sheetCols =
   const ah = h * scale
   const width = Math.max(aw + PAD * 2, 190)
   const x0 = (width - aw) / 2
-  const g = c => `<g transform="translate(${x0} ${PAD}) scale(${scale})">${c}</g>`
+  // Pixel art is whole rects, so hairlines between neighbours at a fractional edge are turned off; glyph text keeps its smoothing.
+  const crisp = kind.startsWith('pixel') ? ' shape-rendering="crispEdges"' : ''
+  const g = c => `<g transform="translate(${x0} ${PAD}) scale(${scale})"${crisp}>${c}</g>`
   emit(`${id}.svg`, kind, id, n, ms, svg(width, ah + PAD * 2 + 16, STYLE, `${g(animate(frames, ms, f => art(f)))}${caption(width / 2, ah + PAD + 22, cap, 'n')}`))
 
   const cols = Math.min(n, sheetCols)
@@ -131,7 +133,7 @@ const family = ({ id, kind, label, frames, ms, w, h, art, scale = 1, sheetCols =
   const cells = frames.map((f, i) => {
     const x = PAD + (i % cols) * cw
     const y = 34 + Math.floor(i / cols) * rowH
-    return `<rect x="${x}" y="${y}" width="${cw - 6}" height="${rowH - 6}" rx="6" fill="${CELL}"/><g transform="translate(${x + 5} ${y + 8}) scale(${scale})">${art(f)}</g>${caption(x + (cw - 6) / 2, y + ah + 22, i + 1, 'n')}`
+    return `<rect x="${x}" y="${y}" width="${cw - 6}" height="${rowH - 6}" rx="6" fill="${CELL}"/><g transform="translate(${x + 5} ${y + 8}) scale(${scale})"${crisp}>${art(f)}</g>${caption(x + (cw - 6) / 2, y + ah + 22, i + 1, 'n')}`
   }).join('')
   emit(`${id}-sheet.svg`, `${kind}-sheet`, `${id}-sheet`, n, ms, svg(sheetW, sheetH, STYLE, `${caption(PAD, 22, cap)}${cells}`))
 }
@@ -180,7 +182,7 @@ const skins = Object.entries(SKINS)
 const skinW = skins.length * (W * PX_SCALE + 16) + PAD * 2 - 10
 const skinCells = skins.map(([name, color], i) => {
   const x = PAD + i * (W * PX_SCALE + 16)
-  return `<rect x="${x}" y="34" width="${W * PX_SCALE + 10}" height="${H * PX_SCALE + 40}" rx="6" fill="${CELL}"/><g transform="translate(${x + 5} 42) scale(${PX_SCALE})">${pixelFrame(draw('idle', 'think', 0), color)}</g>${caption(x + (W * PX_SCALE + 10) / 2, 42 + H * PX_SCALE + 14, name, 'n')}${caption(x + (W * PX_SCALE + 10) / 2, 42 + H * PX_SCALE + 27, hex(color), 'n')}`
+  return `<rect x="${x}" y="34" width="${W * PX_SCALE + 10}" height="${H * PX_SCALE + 40}" rx="6" fill="${CELL}"/><g transform="translate(${x + 5} 42) scale(${PX_SCALE})" shape-rendering="crispEdges">${pixelFrame(draw('idle', 'think', 0), color)}</g>${caption(x + (W * PX_SCALE + 10) / 2, 42 + H * PX_SCALE + 14, name, 'n')}${caption(x + (W * PX_SCALE + 10) / 2, 42 + H * PX_SCALE + 27, hex(color), 'n')}`
 }).join('')
 emit('pixel-skins.svg', 'pixel-skins', 'pixel-skins', skins.length, null, svg(skinW, H * PX_SCALE + 84, STYLE, `${caption(PAD, 22, `skins · idle frame 1`)}${skinCells}`))
 

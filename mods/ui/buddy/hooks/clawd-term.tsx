@@ -1,14 +1,14 @@
 import type { ClientModule } from 'claude-code'
 
 import type { Activity, Cue, Mood, Scene, Strain } from '../types'
-import { FRAME_MS, hex, LOOP, SKINS } from './clawd'
+import { FRAME_MS, hex, idleGesture, LOOP, SKINS } from './clawd'
 import { CUES, cueRows } from './clawd-cues'
 import type { Cell } from './clawd-cues'
 import { BODY, CLICK_MS, CLICKS, dealClicks, FEET, HEAD, marksOf, place } from './clawd-moves'
 import type { Frame, Mark, Sprite } from './clawd-moves'
 
 // `scene` is refreshed on every draw so the one ticker always plays the latest mood.
-type Local = { scene: Scene; frame: number; elapsed: number; click?: { name: string; step: number }; deck: string[]; last?: string; cue: Cue | null }
+type Local = { scene: Scene; frame: number; elapsed: number; click?: { name: string; step: number }; deck: string[]; last?: string; cue: Cue | null; mood: Mood }
 
 const TICK_MS = 30
 const PROP_W = 5
@@ -64,7 +64,7 @@ const WORK: Record<Activity, (f: number) => Look> = {
   plan: f => look(alternate(f, HEAD.left, HEAD.right, 4), BODY.rest, FEET.stand, at(0, f % 4 === 3 ? '◉' : '○'), DOING.plan.color),
 }
 
-// Idle blinks, glances both ways and waves one arm with a greeting at uneven beats; the other moods are one loop each.
+// Idle blinks, wiggles an arm, glances both ways, hops and waves one arm with a greeting at uneven beats; the other moods are one loop each.
 const moodLook = (m: Mood, act: Activity, f: number): Look => {
   switch (m) {
     case 'working':
@@ -75,15 +75,21 @@ const moodLook = (m: Mood, act: Activity, f: number): Look => {
       return beat === 0 ? look(HEAD.open, BODY.rest, FEET.stand, sparks, GOLD, { offset: 1, dust: true })
         : look(HEAD.open, BODY.both, beat === 3 ? FEET.stand : FEET.none, sparks, GOLD)
     }
+    case 'drowsy': {
+      const beat = f % LOOP.drowsy
+      const isStretch = beat >= 2 && beat < 5
+      const isSlump = beat >= 6
+      return look(isStretch || beat === 7 ? HEAD.shut : HEAD.down, isStretch ? BODY.both : BODY.rest, isSlump ? FEET.sit : FEET.stand, at(isStretch ? 1 : 2, isStretch ? 'aah' : isSlump ? 'z' : ''), GREY)
+    }
     case 'asleep':
       return look(HEAD.shut, BODY.rest, FEET.sit, at(2 - (f % 3), f % 3 ? 'Z' : 'z'), GREY)
     case 'oops':
       return f % 2 ? look(HEAD.shut, BODY.rest, FEET.stand, at(0, ''), RED, { offset: 1, dust: true }) : look(HEAD.shut, BODY.both, FEET.stand, at(0, '!'), RED)
     default: {
-      const beat = f % LOOP.idle
-      const isWave = beat >= 34 && beat < 38
-      const head = beat === 7 || beat === 23 || beat === 25 ? HEAD.shut : beat >= 12 && beat < 16 ? HEAD.left : beat >= 28 && beat < 32 ? HEAD.right : HEAD.open
-      return look(head, isWave && f % 2 === 0 ? BODY.right : BODY.rest, FEET.stand, at(0, isWave ? 'hi!' : ''), GREY)
+      const g = idleGesture(f)
+      const head = g === 'blink' ? HEAD.shut : g === 'look-left' ? HEAD.left : g === 'look-right' ? HEAD.right : HEAD.open
+      const body = g === 'hop' ? BODY.both : g === 'wiggle-left' ? BODY.left : g === 'wiggle-right' || (g === 'wave' && f % 2 === 0) ? BODY.right : BODY.rest
+      return look(head, body, g === 'hop' ? FEET.none : FEET.stand, at(0, g === 'wave' ? 'hi!' : ''), GREY, g === 'hop' ? { shadow: true } : {})
     }
   }
 }
@@ -116,10 +122,11 @@ const cellRuns = (row: Cell[]) =>
 const Clawd: ClientModule<Scene, Local> = (scene, surface) => {
   const { Box, Text } = surface.elements
   const isFirst = surface.state === undefined
-  const live: Local = surface.state ?? { scene, frame: 0, elapsed: 0, deck: [], cue: scene.cue }
+  const live: Local = surface.state ?? { scene, frame: 0, elapsed: 0, deck: [], cue: scene.cue, mood: scene.mood }
   live.scene = scene
-  // A cue always opens on its first frame.
-  if (live.cue !== scene.cue) Object.assign(live, { cue: scene.cue, frame: 0, elapsed: 0 })
+  // A cue always opens on its first frame, and so does his yawn, which plays once from start to slump.
+  if (live.cue !== scene.cue || (live.mood !== scene.mood && scene.mood === 'drowsy')) Object.assign(live, { cue: scene.cue, frame: 0, elapsed: 0 })
+  live.mood = scene.mood
 
   if (isFirst) {
     surface.setState(live)

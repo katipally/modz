@@ -69,7 +69,7 @@ export const CLICK_MS = 70
 // What a click plays, one by name, each frame lasting CLICK_MS. Every one ends back on STAND.
 export const CLICKS: Record<string, Frame[]> = {
   jump: [...crouch(), ...hold(AIR, 3), ...crouch(STAND, 1), ...hold(AIR, 2), ...crouch(), ...hold(CHEER, 2), ...hold(STAND)],
-  look: [...hold(RIGHT, 4), ...hold(LEFT, 4), ...hold(UP, 3), ...hold(STAND)],
+  look: [...hold(RIGHT, 5), ...hold(LEFT, 5), ...hold(UP, 4), ...hold(STAND, 2)],
   spin: [...turning(), ...turning(), ...hold(CHEER, 2), ...hold(STAND)],
   peekaboo: [
     ...hold(STAND, 1, { offset: ROWS }), ...hold(STAND, 3, { offset: 2 }), ...hold(RIGHT, 3, { offset: 2 }),
@@ -77,10 +77,10 @@ export const CLICKS: Record<string, Frame[]> = {
   ],
   drop: [
     ...hold(CHEER, 1, { offset: -ROWS }), ...hold(CHEER, 1, { offset: -2 }), ...hold(CHEER, 1, { offset: -1 }),
-    ...crouch(), ...hold(AIR, 1), ...crouch(STAND, 1), ...blink,
+    ...crouch(), ...hold(AIR, 1), ...crouch(STAND, 1), ...hold(CHEER, 3), ...blink,
   ],
-  wink: [...hold(WINK, 5), ...hold(STAND)],
-  boop: [...crouch(SHUT, 3), ...hold(LEFT, 4), ...hold(STAND, 2), ...blink],
+  wink: [...hold(WINK, 8), ...hold(STAND, 2), ...hold(WINK, 3), ...hold(STAND)],
+  boop: [...crouch(SHUT, 3), ...hold(LEFT, 6), ...hold(STAND, 2), ...blink],
   tap: [
     ...[2, 2, 2, 2, 1, 1].flatMap((n, i) => hold([HEAD.open, BODY.rest, i % 2 === 0 ? FEET.tapLeft : FEET.tapRight], n)),
     ...hold(UP, 2), ...hold(CHEER, 2), ...hold(STAND),
@@ -92,7 +92,7 @@ export const CLICKS: Record<string, Frame[]> = {
   turn: [...turning(2), ...hold(STAND)],
   'coin-hop': [
     ...crouch(), ...TURNAROUND.slice(1, -1).flatMap(([head, body]) => hold([head, body, FEET.none], 1, { shadow: true })), ...hold(AIR, 1, { shadow: true }),
-    ...crouch(STAND, 1), ...hold(CHEER, 2), ...hold(STAND),
+    ...crouch(STAND, 1), ...hold(CHEER, 4), ...hold(STAND),
   ],
   skip: [...hops([3, 6, COLS]), ...hops([-6, -3]), ...hold(CHEER, 2), ...hold(STAND)],
   waddle: [...walk([-2, -4, -6, -COLS], LEFT), ...hold(STAND, 3, { x: -COLS }), ...walk([COLS - 2, 6, 4, 2, 1, 0], LEFT), ...hold(STAND, 2), ...blink],

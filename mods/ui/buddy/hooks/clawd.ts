@@ -59,15 +59,19 @@ const NIGHTCAP = ['....NNNN.', '.NNNNNNNNW']
 const CONFETTI = ['y', 'r', 'n', 'b', 'W']
 
 // How fast each mood plays, and how many frames make one loop of it.
-export const FRAME_MS: Record<Mood, number> = { idle: 300, working: 200, happy: 160, oops: 90, asleep: 900, loved: 140 }
-export const LOOP: Record<Mood, number> = { idle: 40, working: 8, happy: 8, oops: 8, asleep: 3, loved: 10 }
+export const FRAME_MS: Record<Mood, number> = { idle: 300, drowsy: 450, working: 200, happy: 160, oops: 90, asleep: 900, loved: 140 }
+export const LOOP: Record<Mood, number> = { idle: 40, drowsy: 8, working: 8, happy: 8, oops: 8, asleep: 3, loved: 10 }
 
-type Gesture = 'none' | 'blink' | 'look-left' | 'look-right' | 'wave'
+export type Gesture = 'none' | 'blink' | 'look-left' | 'look-right' | 'wave' | 'wiggle-left' | 'wiggle-right' | 'hop'
 
-// Idle Clawd blinks, glances both ways and waves once per loop, at uneven beats so it never feels mechanical.
-const idleGesture = (f: number): Gesture => {
+// Idle Clawd blinks, wiggles an arm, glances both ways, hops and waves once per loop, at uneven beats so it never feels mechanical.
+// Beat 0 is always still, which is the frame he holds when motion is off.
+export const idleGesture = (f: number): Gesture => {
   const beat = f % LOOP.idle
   if (beat === 7 || beat === 23 || beat === 25) return 'blink'
+  if (beat === 3) return 'wiggle-left'
+  if (beat === 4) return 'wiggle-right'
+  if (beat === 19) return 'hop'
   if (beat >= 12 && beat < 16) return 'look-left'
   if (beat >= 28 && beat < 32) return 'look-right'
   if (beat >= 34 && beat < 38) return 'wave'
@@ -98,8 +102,12 @@ export const draw = (m: Mood, activity: Activity, f: number, strain: Strain = 'n
   const g = m === 'idle' ? idleGesture(f) : 'none'
   const isWorking = m === 'working'
   const body = CLAWD.map(r => [...r])
-  const isShut = m === 'asleep' || m === 'oops' || g === 'blink'
-  const isSquint = m === 'happy' || m === 'loved'
+  // Drowsy is one slow yawn: eyes sag, he stretches with arms up and eyes shut, then slumps toward sleep in his nightcap.
+  const yawn = m === 'drowsy' ? f % LOOP.drowsy : -1
+  const isStretch = yawn >= 2 && yawn < 5
+  const isSlump = yawn >= 6
+  const isShut = m === 'asleep' || m === 'oops' || g === 'blink' || isStretch || yawn === 7
+  const isSquint = m === 'happy' || m === 'loved' || (yawn >= 0 && !isShut)
   // Over a laptop or a page he looks down; otherwise he glances where the gesture or the work points.
   const isDown = isWorking && (act === 'laptop' || act === 'notes')
   const shift = g === 'look-left' ? -1 : g === 'look-right' || (isWorking && !isDown) ? 1 : 0
@@ -115,14 +123,15 @@ export const draw = (m: Mood, activity: Activity, f: number, strain: Strain = 'n
     }
   }
   const isBounce = (m === 'happy' || m === 'loved') && f % 2 === 0
-  if (isBounce) raise([...ARM_COLS.left, ...ARM_COLS.right])
-  if (g === 'wave' && f % 2 === 0) raise(ARM_COLS.right)
+  if (isBounce || isStretch || g === 'hop') raise([...ARM_COLS.left, ...ARM_COLS.right])
+  if (g === 'wiggle-left') raise(ARM_COLS.left)
+  if (g === 'wave' && f % 2 === 0 || g === 'wiggle-right') raise(ARM_COLS.right)
   if (isWorking && act === 'hammer' && f % 4 < 2) raise(ARM_COLS.right)
   if (isWorking && act === 'think') for (const col of f % 2 === 0 ? LEGS.inner : LEGS.outer) body[LEG_ROW]![col] = '.'
-  if (m === 'asleep') for (const col of [...LEGS.inner, ...LEGS.outer]) body[LEG_ROW]![col] = '.'
+  if (m === 'asleep' || isSlump) for (const col of [...LEGS.inner, ...LEGS.outer]) body[LEG_ROW]![col] = '.'
 
   const ox = LEFT + (m === 'oops' ? (f % 2 === 0 ? -1 : 1) : 0)
-  const oy = TOP + ((m === 'happy' || m === 'loved') && f % 2 === 1 ? 1 : m === 'asleep' ? 1 : 0)
+  const oy = TOP + ((m === 'happy' || m === 'loved') && f % 2 === 1 ? 1 : m === 'asleep' || isSlump ? 1 : isStretch || g === 'hop' ? -1 : 0)
   const canvas = blank()
   stamp(canvas, body.map(r => r.join('')), ox, oy)
 
@@ -186,7 +195,7 @@ export const draw = (m: Mood, activity: Activity, f: number, strain: Strain = 'n
     }
   }
   if (m === 'loved') stamp(canvas, HEART, ox + 6, oy - 2)
-  if (m === 'asleep') stamp(canvas, NIGHTCAP, ox + 3, oy - 2)
+  if (m === 'asleep' || isSlump) stamp(canvas, NIGHTCAP, ox + 3, oy - 2)
   if (m === 'oops') put(canvas, ox + 15, oy + 1 + (f % 2), 'b')
   if (m === 'idle' || isWorking) {
     const free = (x: number, y: number, c: string) => canvas[y]?.[x] === undefined && put(canvas, x, y, c)
@@ -261,16 +270,28 @@ const MUG = ['ww.', 'www', 'ww.']
 const PAGE_LINES = [4, 2, 5, 1, 4, 3, 5, 2]
 const CLOUD = ['..ggggggg..', '.ggggggggg.']
 const RAIN_COLS = [3, 7, 10, 15]
-const BURST = [['...', '.o.', '...'], ['.o.', 'ooo', '.o.'], ['o.o', '.o.', 'o.o'], ['o.o', '...', 'o.o']]
+const BURST = [
+  ['...o....', '..oWo...', '...o....', '........'],
+  ['.o.o.o..', '.ooWoo..', '.o.o.o..', '...o....'],
+  ['o..o..o.', '.o...o..', 'o.....o.', '...o....'],
+  ['o.....o.', '........', 'o.....o.', '........'],
+]
 const FLAG_DY = [0, 1, 1, 0, 0, -1, 1, 0, 0, 0]
 const FLAG_POLE = [0, 2, 5, 8, 10, 10, 10, 10, 10, 10]
 const FLAG_CHEER = [4, 5, 7, 8]
-const FIREWORK_DY = [0, 1, -1, 0, -1, 0, 0, -1, 0, 0, 0, 0]
+const FIREWORK_DY = [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0]
 
-// One volley is a rocket that climbs three rows, then a burst that opens and fades; g counts frames since it left.
-const fire = (c: Pixels, x: number, g: number, color: string) => {
-  if (g >= 0 && g < 3) put(c, x + 1, 5 - g, color)
-  else if (g >= 3 && g < 7) stamp(c, BURST[g - 3]!.map(r => r.replaceAll('o', color)), x, 1)
+// One volley is a rocket up the box's edge, then an eight-by-four burst across the corner that opens and fades; he only dips, never rises, so the rows above his head stay clear; g counts frames
+// since it left. It is drawn behind him, on empty pixels only, so his head, eyes and arms are never covered.
+const fire = (c: Pixels, isRight: boolean, g: number, color: string) => {
+  const spark = (x: number, y: number, v: string) => {
+    const col = isRight ? W - 1 - x : x
+    if (c[y]?.[col] === undefined) put(c, col, y, v)
+  }
+  if (g >= 0 && g < 2) {
+    spark(0, 4 - g, color)
+    spark(0, 5 - g, 'W')
+  } else if (g >= 2 && g < 6) BURST[g - 2]!.forEach((row, y) => [...row].forEach((v, x) => v !== '.' && spark(x, y, v === 'o' ? color : v)))
 }
 
 // ms and n match the terminal's cue, rest is the frame shown when motion is off, say names it for a screen reader.
@@ -286,19 +307,19 @@ export const PIXEL_CUES: Record<Cue, { ms: number; n: number; rest: number; say:
     },
   },
   error: {
-    ms: 130, n: 8, rest: 6, say: 'error',
+    ms: 170, n: 9, rest: 6, say: 'error',
     art: f => {
-      const p = pose({ dx: [0, 0, 1, -1, 1, 0, 0, 0][f]!, dy: f === 1 ? 1 : 0 })
+      const p = pose({ dx: [0, 0, 1, -1, 1, 0, 0, 0, 0][f]!, dy: f === 1 ? 1 : 0 })
       if (f > 0) eyes(p, 'x')
-      for (const [x, y] of SMOKE.slice(0, [0, 1, 2, 3, 4, 2, 0, 0][f]!)) put(p.c, p.ox + x, p.oy + y, 'g')
+      for (const [x, y] of SMOKE.slice(0, [0, 1, 2, 3, 4, 2, 0, 0, 0][f]!)) put(p.c, p.ox + x, p.oy + y, 'g')
       if (f >= 4) stamp(p.c, BANG, W - 1, TOP)
       return p.c
     },
   },
   pass: {
-    ms: 140, n: 5, rest: 3, say: 'tests passed',
+    ms: 190, n: 8, rest: 3, say: 'tests passed',
     art: f => {
-      const p = pose({ dy: [1, -1, 0, 0, 0][f]! })
+      const p = pose({ dy: [1, -1, 0, 0, -1, 0, 0, 0][f]! })
       if (f > 0) {
         raise(p, f === 1 ? ARM_COLS.right : BOTH)
         stamp(p.c, CHECK, p.ox + 15, p.oy - 1)
@@ -307,10 +328,10 @@ export const PIXEL_CUES: Record<Cue, { ms: number; n: number; rest: number; say:
     },
   },
   fail: {
-    ms: 140, n: 5, rest: 2, say: 'tests failed',
+    ms: 190, n: 8, rest: 2, say: 'tests failed',
     art: f => {
-      const p = pose({ dx: [0, -1, 1, -1, 0][f]!, dy: 1 })
-      eyes(p, f === 4 ? 'shut' : 'down')
+      const p = pose({ dx: [0, -1, 1, -1, 1, 0, 0, 0][f]!, dy: 1 })
+      eyes(p, f >= 5 ? 'shut' : 'down')
       raise(p, ARM_COLS.right)
       stamp(p.c, CROSS, p.ox + 15, p.oy - 1)
       return p.c
@@ -359,7 +380,7 @@ export const PIXEL_CUES: Record<Cue, { ms: number; n: number; rest: number; say:
     },
   },
   bigfile: {
-    ms: 120, n: 12, rest: 0, say: 'reading a big file',
+    ms: 125, n: 24, rest: 0, say: 'reading a big file',
     art: f => {
       const p = pose()
       const [first, step] = [Math.floor(f / 4), f % 4]
@@ -383,7 +404,7 @@ export const PIXEL_CUES: Record<Cue, { ms: number; n: number; rest: number; say:
     },
   },
   flag: {
-    ms: 130, n: 10, rest: 9, say: 'planting a flag',
+    ms: 150, n: 10, rest: 9, say: 'planting a flag',
     art: f => {
       const p = pose({ dy: FLAG_DY[f]! })
       if (FLAG_CHEER.includes(f)) raise(p, BOTH)
@@ -408,13 +429,14 @@ export const PIXEL_CUES: Record<Cue, { ms: number; n: number; rest: number; say:
     },
   },
   fireworks: {
-    ms: 110, n: 12, rest: 5, say: 'celebrating',
+    ms: 130, n: 12, rest: 5, say: 'celebrating',
     art: f => {
       const p = pose({ dy: FIREWORK_DY[f]! })
       if (f > 1 && f < 11) raise(p, BOTH)
-      const isSecond = f >= 8
-      fire(p.c, W - 3, isSecond ? f - 8 : f, isSecond ? 'b' : 'y')
-      fire(p.c, 0, isSecond ? f - 8 : f - 1, isSecond ? 'n' : 'r')
+      fire(p.c, true, f, 'y')
+      fire(p.c, false, f - 1, 'r')
+      fire(p.c, true, f - 6, 'b')
+      fire(p.c, false, f - 6, 'n')
       return p.c
     },
   },
