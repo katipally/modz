@@ -50,7 +50,7 @@ claude plugin update buddy@modz
 
 ## How mods share the screen
 
-Mods that draw above the prompt place a tile in one shared band (`modz-band`): a lead column for the bot, then one column of tiles in a fixed order. Each mod's `SLOTS` says where it goes (`lead`, `left`, or `right`), and a column with no tiles is not drawn.
+Mods that draw above the prompt place a tile in one shared band (`modz-band`): a lead column for the bot, then one column of tiles in a fixed order. Each mod's `SLOTS` says where it goes (`lead`, `left`, or `right`), and a column with no tiles is not drawn. The usage, cache and model tiles are always drawn, with a dim `–` placeholder until their first value arrives.
 
 ```
   [bot]    ctx   ███░░░░░░░ 26%   5h 4% · 4h 35m   7d 7% · 6d 17h

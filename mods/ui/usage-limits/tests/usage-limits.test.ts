@@ -43,3 +43,17 @@ test('joins the shared row other mods drew, first in order', async ($, on) => {
     await ui.unmount()
   }
 })
+
+test('draws placeholders before any usage arrives', async ($, on) => {
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  for (const bodyColumns of [100, 10]) {
+    const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns, scroll: {} as never, view: {} as never }
+    const ui = await $.ui.mount({ plugin: 'usage-limits', surface: 'terminal', component: 'AbovePrompt', props })
+    const row = (await ui.find({ key: 'usage-limits' }))?.text ?? ''
+    expect(row).toMatch(/ctx +░+ –/)
+    expect(row).toContain('5h –')
+    expect(row).toContain('7d –')
+    expect(row).not.toMatch(/NaN|undefined/)
+    await ui.unmount()
+  }
+})

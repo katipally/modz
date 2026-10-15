@@ -73,3 +73,12 @@ test('lists models and efforts from Claude Code and switches them through /model
   }
   expect(ran).toEqual(['/effort high', '/model sonnet', '/effort low', '/model haiku'])
 })
+
+test('draws placeholders before the model is known', async ($, on) => {
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({ plugin: 'model-info', surface, component: 'AbovePrompt', props: PROPS })
+    expect((await ui.find({ key: 'model-info' }))?.text).toBe('model – · effort –')
+    await ui.unmount()
+  }
+})

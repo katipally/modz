@@ -101,23 +101,21 @@ export const register: Register = on => {
     const below = await next(e)
     if (e.props.hasSurvey) return below
     const [r, , ttl, tw] = await Promise.all([read($, last), read($, now), read($, ttlMin), read($, twinkle)])
-    const t = Date.now()
-    if (!r) return below
     const { Box, Text } = $.ui.resolve(e)
 
-    const total = r.read + r.write + r.fresh
-    const hit = total ? Math.floor((r.read * 100) / total) : 0
-    const left = r.at + ttl * 60_000 - t
+    const total = r ? r.read + r.write + r.fresh : 0
+    const hit = r && total ? Math.floor((r.read * 100) / total) : 0
+    const left = r ? r.at + ttl * 60_000 - Date.now() : 0
     const isWarm = left > 0
 
     return pack(Box, below, (
       <Box key="cache-timer" flexDirection="row">
         <Text>
           <Text color={TINT}>{'cache'.padEnd(5)} </Text>
-          <Text bold color={hit >= 90 ? TINT : hit >= 70 ? 'warning' : 'error'}>{hit}%</Text>
+          {r ? <Text bold color={hit >= 90 ? TINT : hit >= 70 ? 'warning' : 'error'}>{hit}%</Text> : <Text dimColor>–</Text>}
           {tw > 0 && <Text color={TINT}> {SPARKLE[tw % SPARKLE.length]}</Text>}
           <Text dimColor> · </Text>
-          <Text color={isWarm ? 'success' : 'error'}>{isWarm ? span(left) : `${span(-left)} ago`}</Text>
+          {r ? <Text color={isWarm ? 'success' : 'error'}>{isWarm ? span(left) : `${span(-left)} ago`}</Text> : <Text dimColor>–</Text>}
         </Text>
       </Box>
     ))

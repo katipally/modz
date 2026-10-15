@@ -22,3 +22,12 @@ test('shows hit rate, a warm countdown, and sets the ttl by command', async ($, 
     await ui.unmount()
   }
 })
+
+test('draws placeholders before the first request', async ($, on) => {
+  mock.store(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  const props = { hasSurvey: false, isWorking: false, maxRows: 6, bodyColumns: 100, scroll: {} as never, view: {} as never }
+  const ui = await $.ui.mount({ plugin: 'cache-timer', surface: 'terminal', component: 'AbovePrompt', props })
+  expect((await ui.find({ key: 'cache-timer' }))?.text).toBe('cache – · –')
+  await ui.unmount()
+})

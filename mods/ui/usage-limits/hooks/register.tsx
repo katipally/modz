@@ -96,29 +96,28 @@ export const register: Register = on => {
     const [u, , shown] = await Promise.all([read($, usage), read($, now), read($, shownPct)])
     const t = Date.now()
     const pct = u.contextPercent
-    if (pct === undefined && u.limits.length === 0) return below
 
     const width = Math.max(5, Math.min(10, Math.floor(e.props.bodyColumns / 12)))
     const filled = pct === undefined ? 0 : Math.min(width, Math.max(0, Math.round((shown / 100) * width)))
-    const metric = (label: string, value: number, detail?: string) => (
+    const metric = (label: string, value?: number, detail?: string) => (
       <Text>
         <Text dimColor>{label} </Text>
-        <Text bold color={tone(value, 'success')}>{Math.round(value)}%</Text>
+        {value === undefined ? <Text dimColor>–</Text> : <Text bold color={tone(value, 'success')}>{Math.round(value)}%</Text>}
         {detail && <Text dimColor> · {detail}</Text>}
       </Text>
     )
 
     return pack(Box, below, (
       <Box key="usage-limits" flexDirection="row" flexWrap="wrap" columnGap={3}>
-        {pct !== undefined && (
-          <Text>
-            <Text color={TINT}>{'ctx'.padEnd(5)} </Text>
-            <Text color={tone(pct, TINT)}>{'█'.repeat(filled)}</Text>
-            <Text dimColor>{'░'.repeat(width - filled)} </Text>
-            <Text bold color={tone(pct, TINT)}>{Math.round(pct)}%</Text>
-          </Text>
-        )}
-        {u.limits.map(l => metric(LABELS[l.kind] ?? l.kind, l.percentUsed, l.resetsAt && span(Date.parse(l.resetsAt) - t)))}
+        <Text>
+          <Text color={TINT}>{'ctx'.padEnd(5)} </Text>
+          <Text color={tone(pct ?? 0, TINT)}>{'█'.repeat(filled)}</Text>
+          <Text dimColor>{'░'.repeat(width - filled)} </Text>
+          {pct === undefined ? <Text dimColor>–</Text> : <Text bold color={tone(pct, TINT)}>{Math.round(pct)}%</Text>}
+        </Text>
+        {u.limits.length > 0
+          ? u.limits.map(l => metric(LABELS[l.kind] ?? l.kind, l.percentUsed, l.resetsAt && span(Date.parse(l.resetsAt) - t)))
+          : [metric('5h'), metric('7d')]}
       </Box>
     ))
   })

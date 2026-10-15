@@ -23,3 +23,4 @@ claude plugin update cache-timer@modz
 - The percentage turns yellow under 90% and red under 70%.
 - Claude Code does not report the cache lifetime: set it with `/cache-ttl 5m` or `/cache-ttl 1h` (default 1h, remembered).
 - Subagent requests are ignored.
+- Until the first request the tile reads `cache – · –`.

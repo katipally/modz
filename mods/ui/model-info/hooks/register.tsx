@@ -92,9 +92,9 @@ export const register: Register = on => {
     const below = await next(e)
     if (e.props.hasSurvey) return below
     const [i, c, ok, menu] = await Promise.all([read($, info), read($, choices), read($, isConfirmed), read($, openMenu)])
-    if (!i) return below
     const elements = $.ui.resolve(e)
     const { Box, Text } = elements
+    if (!i) return pack(Box, below, <Box key="model-info" flexDirection="row"><Text dimColor>model – · effort –</Text></Box>)
 
     // Both run Claude Code's own /model and /effort, so the change is the session's, not a display.
     const run = async (command: string, args: string) => {
