@@ -66,6 +66,9 @@ const pack = (Box: ElementConstructor<BoxProps>, below: RenderElement, tile: Ren
 }
 
 
+// A cache that /clear or a resume left behind, or a compaction rewrote, no longer says anything about the next request.
+const forget = ($: EngineInterface) => update($, last, () => null)
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
@@ -77,8 +80,20 @@ export const register: Register = on => {
     return started
   })
 
-  // A resumed transcript's last response says how long ago the cache was last touched; its token counts come from the
-  // live window when the engine has them, else only the countdown shows.
+  on('session.end', async ($, e, next) => {
+    if (e.reason === 'clear' || e.reason === 'resume') await forget($)
+    return next(e)
+  })
+
+  on('session.compact', async ($, e, next) => {
+    const compacted = await next(e)
+    if (e.trigger !== 'precompute' && e.agentId === undefined && !compacted.skip) await forget($)
+    return compacted
+  }).catch(($, e, next) => next(e))
+
+  // A resumed transcript's last response says how long ago the cache was last touched, which no other event carries; its
+  // token counts come from the live window when the engine has them, else only the countdown shows. Classic hooks do not
+  // run where an organization manages Claude Code, and there a resumed session shows the placeholders until its first request.
   on('classic.SessionStart', async ($, e, next) => {
     const started = await next(e)
     if ((e.source === 'resume' || e.source === 'fork') && e.seconds_since_last_response !== undefined) {
@@ -88,7 +103,7 @@ export const register: Register = on => {
       await update($, now, () => Date.now())
     }
     return started
-  })
+  }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'cache-ttl' }, async ($, e) => {
     const ttl = TTL_CHOICES[e.args.trim()]

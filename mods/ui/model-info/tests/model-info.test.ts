@@ -118,3 +118,28 @@ test('keeps the placeholders when the model read rejects at start, then retries'
   expect(await shown(ui, 'desktop', 'model')).toBe('claude-sonnet-5-5')
   await ui.unmount()
 })
+
+test('a retry whose state write fails is logged, keeps the placeholder and rejects nothing', async ($, on) => {
+  const clock = mock.clock(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  let calls = 0
+  on('session.model', () => {
+    if (calls++ === 0) throw new Error('session not bound')
+    return { value: 'claude-sonnet-5-5' }
+  })
+  on('settings.read', () => ({ value: {} }))
+  on('config.list', () => ({ value: [] }))
+  on('command.list', () => ({ value: [] }))
+  let isStoreDown = false
+  on('state.set', (_, e, next) => (isStoreDown ? { deny: 'store is down' } : next(e)))
+  const logs: string[] = []
+  on('ui.log', (_, e) => { logs.push(e.text); return { value: undefined } })
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true } as never)
+  isStoreDown = true
+  await clock.advance(2000)
+  expect(logs.join('\n')).toContain('model-info:')
+  const ui = await $.ui.mount({ plugin: 'model-info', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'model-info' }))?.text).toBe('model – · effort –')
+  await ui.unmount()
+})

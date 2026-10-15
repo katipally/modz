@@ -76,7 +76,7 @@ const load = async ($: EngineInterface) => {
   return [model, rows, commands].every(r => r.status === 'fulfilled')
 }
 const start = async ($: EngineInterface, attempt = 0) => {
-  if (!(await load($)) && attempt < RETRIES) $.clock.after(RETRY_MS, () => void start($, attempt + 1))
+  if (!(await load($)) && attempt < RETRIES) $.clock.after(RETRY_MS, () => void start($, attempt + 1).catch(err => $.ui.log(`model-info: ${err}`, { to: 'debug' })))
 }
 
 export const register: Register = on => {

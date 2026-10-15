@@ -111,3 +111,30 @@ test('keeps the placeholders when usage rejects at start, then fills in on the n
   expect((await ui.find({ key: 'usage-limits' }))?.text).toContain('21%')
   await ui.unmount()
 })
+
+const END = (reason: 'clear' | 'resume') => ({ reason, sessionId: 's', resume: { id: 's' } }) as never
+
+test('/clear resets the tile without classic hooks, and a failed reload is retried on the tick', async ($, on) => {
+  const clock = mock.clock(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('session.end', (_, e) => ({ sessionId: e.sessionId }))
+  let usage: ReturnType<typeof usageOf> | undefined = usageOf(60)
+  let failures = 0
+  on('session.usage', () => {
+    if (failures-- > 0) throw new Error('session not bound')
+    return { value: usage! }
+  })
+  await $.session.start(START)
+  const ui = await $.ui.mount({ plugin: 'usage-limits', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'usage-limits' }))?.text).toContain('60%')
+  failures = 1
+  usage = usageOf(5)
+  await $.session.end(END('clear'))
+  expect((await ui.find({ key: 'usage-limits' }))?.text).toMatch(/ctx +░+ –5h –7d –/)
+  await clock.advance(30_000)
+  expect((await ui.find({ key: 'usage-limits' }))?.text).toMatch(/ctx +░+ –5h –7d –/)
+  await clock.advance(30_000)
+  expect((await ui.find({ key: 'usage-limits' }))?.text).toContain('5%')
+  await ui.unmount()
+})

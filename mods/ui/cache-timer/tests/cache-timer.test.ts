@@ -71,3 +71,20 @@ test('a fresh start has nothing to show, and a rejecting usage call on resume st
   expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/^cache +– · 59m$/)
   await ui.unmount()
 })
+
+test('/clear and a resume drop the old cache state without classic hooks', async ($, on) => {
+  mock.store(on)
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as RenderElement)
+  on('session.end', (_, e) => ({ sessionId: e.sessionId }))
+  on('classic.SessionStart', () => ({}))
+  on('session.usage', () => usageWith(null))
+  await $.classic.SessionStart({ source: 'resume', seconds_since_last_response: 60 } as never)
+  const ui = await $.ui.mount({ plugin: 'cache-timer', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect((await ui.find({ key: 'cache-timer' }))?.text).toMatch(/· 59m$/)
+  for (const reason of ['clear', 'resume'] as const) {
+    await $.classic.SessionStart({ source: 'resume', seconds_since_last_response: 60 } as never)
+    await $.session.end({ reason, sessionId: 's', resume: { id: 's' } } as never)
+    expect((await ui.find({ key: 'cache-timer' }))?.text).toBe('cache – · –')
+  }
+  await ui.unmount()
+})

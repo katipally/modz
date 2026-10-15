@@ -74,6 +74,7 @@ const TINT = 'claude'
 const tone = (pct: number, calm: string) => (pct >= 85 ? 'error' : pct >= 60 ? 'warning' : calm)
 
 // The session binds around session.start, so the first read waits for next(e); one that still rejects is retried on the tick.
+// Every reload clears isLoaded first, so a failed one is retried the same way.
 let isLoaded = false
 const load = async ($: EngineInterface) => {
   try {
@@ -84,6 +85,11 @@ const load = async ($: EngineInterface) => {
   } catch (err) {
     $.ui.log(`usage-limits: ${err}`, { to: 'debug' })
   }
+}
+
+const reload = ($: EngineInterface) => {
+  isLoaded = false
+  return load($)
 }
 
 export const register: Register = on => {
@@ -98,12 +104,27 @@ export const register: Register = on => {
     return started
   })
 
-  // Fires on startup, resume, /clear and compact; /clear raises no session.start, so this is where the tile resets.
+  // /clear and a resume end the session before the next one binds, so the tile resets and the tick loads it.
+  on('session.end', async ($, e, next) => {
+    if (e.reason === 'clear' || e.reason === 'resume') {
+      isLoaded = false
+      await update($, usage, () => ({ limits: [] }))
+    }
+    return next(e)
+  })
+
+  on('session.compact', async ($, e, next) => {
+    const compacted = await next(e)
+    if (e.trigger !== 'precompute' && e.agentId === undefined && !compacted.skip) await reload($)
+    return compacted
+  }).catch(($, e, next) => next(e))
+
+  // Loads right after /clear, resume and compact where the engine runs classic hooks; not where an organization manages Claude Code.
   on('classic.SessionStart', async ($, e, next) => {
     const started = await next(e)
-    await load($)
+    await reload($)
     return started
-  })
+  }).catch(($, e, next) => next(e))
 
   on('session.measure', async ($, e, next) => {
     await update($, usage, () => toUsage(e.context, e.rateLimits))
